@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "Anchor",
+    "slug": "anchor-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anchor.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.anchor.app",
+      "permissions": [
+        "NOTIFICATIONS",
+        "RECORD_AUDIO",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "apiUrl": "http://10.194.82.95:8000",
+      "supabaseUrl": "https://pjpsjbywokiapiajdinv.supabase.co",
+      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBqcHNqYnl3b2tpYXBpYWpkaW52Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0OTAyNjAsImV4cCI6MjA4NjA2NjI2MH0.h-Mqo7Ikf0s3P375Uhw355ctR6EiJ2C_FU6dMsuj2Yk"
+    }
+  }
+}
