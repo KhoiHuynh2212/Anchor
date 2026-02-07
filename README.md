@@ -1,4 +1,4 @@
-# AAnchor
+# Anchor
 
 ## Overview
 A voice first assistant that helps with accountabilty and checks in on mental health progress.
