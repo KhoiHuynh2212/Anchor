@@ -12,7 +12,7 @@ import {
   Alert,
 } from "react-native";
 import { Audio } from "expo-av";
-import { File } from "expo-file-system";
+import * as FileSystem from "expo-file-system";
 import { T } from "../../theme";
 import api from "../../services/api";
 
@@ -159,8 +159,9 @@ export default function EveningCheckinScreen() {
       setRecording(null);
 
       if (uri) {
-        const file = new File(uri);
-        const base64 = await file.base64();
+        const base64 = await FileSystem.readAsStringAsync(uri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
         sendMessage("", `data:audio/m4a;base64,${base64}`);
       }
     } catch (e) {
