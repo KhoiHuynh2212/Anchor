@@ -1,13 +1,13 @@
-# Project Nexus
+# AAnchor
 
 ## Overview
-One-sentence description of what the project does.
+A voice first assistant that helps with accountabilty and checks in on mental health progress.
 
 ## Problem
-What problem are you solving? Why does it matter?
+Student mental health
 
 ## Solution
-How your project addresses the problem (high level).
+AI provides solutions and resources to aid
 
 ## Features
 - Feature 1
