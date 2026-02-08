@@ -23,6 +23,7 @@ async def submit_answers(answers: OnboardingAnswers, user_id: str = Depends(get_
             "bed_time": answers.bed_time,
             "updated_at": datetime.utcnow(),
         }},
+        upsert=True,
     )
     # Create goal nodes in knowledge graph
     for goal in answers.goals:
@@ -63,10 +64,15 @@ async def chat(msg: ChatMessage, user_id: str = Depends(get_current_user_id)):
     # Save messages
     user_msg = {"role": "user", "content": msg.message, "timestamp": datetime.utcnow()}
     ai_msg = {"role": "assistant", "content": result["response"], "timestamp": datetime.utcnow()}
-    await db.conversations.update_one(
-        {"_id": conv["_id"]},
-        {"$push": {"messages": {"$each": [user_msg, ai_msg]}}},
-    )
+    try:
+        await db.conversations.update_one(
+            {"_id": conv["_id"]},
+            {"$push": {"messages": {"$each": [user_msg, ai_msg]}}},
+        )
+    except Exception:
+        # Demo-first: if Mongo hiccups (e.g. operation cancelled during reload),
+        # still return the AI response instead of failing the whole request.
+        pass
 
     # Add extracted entities to knowledge graph
     if result.get("entities"):

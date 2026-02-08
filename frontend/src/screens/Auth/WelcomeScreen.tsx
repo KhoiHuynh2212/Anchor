@@ -4,59 +4,79 @@ import {
     Text,
     TouchableOpacity,
     StyleSheet,
-    SafeAreaView,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
 import { T } from "../../theme";
+import AppIcon from "../../components/AppIcon";
 
 export default function WelcomeScreen({ navigation }: any) {
     return (
-        <SafeAreaView style={styles.container}>
-            {/* Decorative circles */}
-            <View style={styles.circleTopRight} />
-            <View style={styles.circleBottomLeft} />
+        <LinearGradient
+            colors={[T.bg, T.bgDeep, T.primarySoft]}
+            style={styles.container}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+        >
+            <SafeAreaView style={{ flex: 1 }}>
+                {/* Decorative circles */}
+                <View style={styles.circleTopRight} />
+                <View style={styles.circleBottomLeft} />
 
-            <View style={styles.content}>
-                {/* Logo */}
-                <View style={styles.logoContainer}>
-                    <View style={styles.logoMark}>
-                        <Text style={styles.logoEmoji}>⚓</Text>
+                <View style={styles.content}>
+                    {/* Logo */}
+                    <View style={styles.logoContainer}>
+                        <LinearGradient
+                            colors={[T.primary, T.accent]}
+                            style={styles.logoMark}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                        >
+                            <AppIcon name="anchor" size={42} color="#fff" />
+                        </LinearGradient>
+
+                        <Text style={styles.title}>Anchor</Text>
+                        <Text style={styles.subtitle}>
+                            Your mindful companion for growth, reflection & accountability
+                        </Text>
                     </View>
 
-                    <Text style={styles.title}>Anchor</Text>
-                    <Text style={styles.subtitle}>
-                        Your mindful companion for growth, reflection & accountability
+                    {/* CTA Buttons */}
+                    <View style={styles.buttonContainer}>
+                        <TouchableOpacity
+                            onPress={() => navigation.navigate("Register")}
+                            activeOpacity={0.85}
+                        >
+                            <LinearGradient
+                                colors={[T.primary, T.accent]}
+                                style={styles.primaryButton}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                            >
+                                <Text style={styles.primaryButtonText}>Get Started</Text>
+                            </LinearGradient>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={styles.secondaryButton}
+                            onPress={() => navigation.navigate("Login")}
+                        >
+                            <Text style={styles.secondaryButtonText}>I have an account</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    <Text style={styles.termsText}>
+                        By continuing, you agree to our Terms & Privacy Policy
                     </Text>
                 </View>
-
-                {/* CTA Buttons */}
-                <View style={styles.buttonContainer}>
-                    <TouchableOpacity
-                        style={styles.primaryButton}
-                        onPress={() => navigation.navigate("Register")}
-                    >
-                        <Text style={styles.primaryButtonText}>Get Started</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={styles.secondaryButton}
-                        onPress={() => navigation.navigate("Login")}
-                    >
-                        <Text style={styles.secondaryButtonText}>I have an account</Text>
-                    </TouchableOpacity>
-                </View>
-
-                <Text style={styles.termsText}>
-                    By continuing, you agree to our Terms & Privacy Policy
-                </Text>
-            </View>
-        </SafeAreaView>
+            </SafeAreaView>
+        </LinearGradient>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: T.bg,
     },
     circleTopRight: {
         position: "absolute",
@@ -90,7 +110,6 @@ const styles = StyleSheet.create({
         width: 88,
         height: 88,
         borderRadius: 28,
-        backgroundColor: T.primary,
         alignItems: "center",
         justifyContent: "center",
         marginBottom: 32,
@@ -100,17 +119,15 @@ const styles = StyleSheet.create({
         shadowRadius: 20,
         elevation: 10,
     },
-    logoEmoji: {
-        fontSize: 42,
-    },
     title: {
         fontSize: 42,
-        fontWeight: "400",
+        fontFamily: T.fontDisplay,
         color: T.text,
         marginBottom: 12,
     },
     subtitle: {
         fontSize: 16,
+        fontFamily: T.font,
         color: T.textSecondary,
         textAlign: "center",
         lineHeight: 24,
@@ -124,7 +141,6 @@ const styles = StyleSheet.create({
         width: "100%",
         paddingVertical: 18,
         paddingHorizontal: 32,
-        backgroundColor: T.primary,
         borderRadius: 60,
         alignItems: "center",
         marginBottom: 16,
@@ -137,7 +153,7 @@ const styles = StyleSheet.create({
     primaryButtonText: {
         color: "#FFFFFF",
         fontSize: 16,
-        fontWeight: "600",
+        fontFamily: T.fontSemiBold,
         letterSpacing: 0.3,
     },
     secondaryButton: {
@@ -153,10 +169,11 @@ const styles = StyleSheet.create({
     secondaryButtonText: {
         color: T.primary,
         fontSize: 15,
-        fontWeight: "500",
+        fontFamily: T.fontMedium,
     },
     termsText: {
         fontSize: 12,
+        fontFamily: T.font,
         color: T.textMuted,
         marginTop: 32,
         lineHeight: 18,

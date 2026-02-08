@@ -1,20 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { Platform } from "react-native";
 import { Session, User } from "@supabase/supabase-js";
-import * as Notifications from "expo-notifications";
-import Constants from "expo-constants";
 import { supabase } from "../services/supabase";
 import api from "../services/api";
-
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
 
 type UserProfile = {
   id: string;
@@ -37,45 +24,32 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-async function registerPushToken() {
-  try {
-    if (Platform.OS === "web") return;
-
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-
-    if (existingStatus !== "granted") {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-
-    if (finalStatus !== "granted") return;
-
-    const projectId = Constants.expoConfig?.extra?.eas?.projectId;
-    const tokenData = await Notifications.getExpoPushTokenAsync({
-      projectId,
-    });
-
-    await api.post("/auth/push-token", {
-      expo_push_token: tokenData.data,
-    });
-  } catch (e) {
-    console.log("Push token registration error:", e);
-  }
-}
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = async () => {
+  const fetchProfile = async (): Promise<UserProfile | null> => {
     try {
       const res = await api.get("/auth/me");
       setUserProfile(res.data);
-    } catch {
+      return res.data;
+    } catch (err: any) {
+      // If the Mongo profile doesn't exist yet, sync it once then retry.
+      const status = err?.response?.status;
+      if (status === 404) {
+        try {
+          await api.post("/auth/sync");
+          const res = await api.get("/auth/me");
+          setUserProfile(res.data);
+          return res.data;
+        } catch {
+          // fall through
+        }
+      }
       setUserProfile(null);
+      return null;
     }
   };
 
@@ -114,7 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) throw error;
     await api.post("/auth/sync");
     await fetchProfile();
-    registerPushToken();
+    // Push notifications disabled in Expo Go
   };
 
   const signIn = async (email: string, password: string) => {
@@ -124,8 +98,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     if (error) throw error;
     await api.post("/auth/sync");
-    await fetchProfile();
-    registerPushToken();
+    const profile = await fetchProfile();
+
+    // Product rule: successful login implies onboarding is already complete.
+    // (New users go through onboarding from the sign-up path.)
+    if (profile && !profile.onboarding_complete) {
+      try {
+        await api.post("/onboarding/complete");
+      } finally {
+        await fetchProfile();
+      }
+    }
+    // Push notifications disabled in Expo Go
   };
 
   const signOut = async () => {

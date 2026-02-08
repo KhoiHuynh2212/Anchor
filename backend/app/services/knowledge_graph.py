@@ -33,7 +33,7 @@ async def create_edge(user_id: str, source_node_id: str, target_node_id: str, re
 async def get_user_graph(user_id: str):
     db = get_db()
     nodes = []
-    async for node in db.knowledge_graph.find({"user_id": user_id}):
+    async for node in db.knowledge_graph.find({"user_id": user_id, "deleted_at": {"$exists": False}}):
         node["_id"] = str(node["_id"])
         nodes.append(node)
     return nodes

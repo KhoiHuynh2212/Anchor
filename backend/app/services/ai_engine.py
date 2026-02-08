@@ -1,6 +1,7 @@
 import json
 import asyncio
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from app.config import settings
 from app.core.prompts import (
     SAGE_BASE_PERSONALITY,
@@ -13,9 +14,8 @@ from app.core.prompts import (
 from app.services import knowledge_graph as kg
 from app.core.database import get_db
 
-# Configure Gemini
-genai.configure(api_key=settings.gemini_api_key)
-model = genai.GenerativeModel(settings.gemini_model)
+# Configure Gemini client (new SDK)
+client = genai.Client(api_key=settings.gemini_api_key)
 
 
 async def _get_user_profile(user_id: str) -> dict:
@@ -36,9 +36,13 @@ async def _get_user_profile(user_id: str) -> dict:
 async def _call_gemini(prompt: str, temperature: float = 0.8, max_tokens: int = 500) -> str:
     try:
         response = await asyncio.to_thread(
-            model.generate_content,
-            SAGE_BASE_PERSONALITY + "\n\n" + prompt,
-            generation_config={"temperature": temperature, "max_output_tokens": max_tokens},
+            client.models.generate_content,
+            model=settings.gemini_model,
+            contents=SAGE_BASE_PERSONALITY + "\n\n" + prompt,
+            config=types.GenerateContentConfig(
+                temperature=temperature,
+                max_output_tokens=max_tokens,
+            ),
         )
         return response.text
     except Exception as e:
@@ -138,9 +142,13 @@ async def extract_insights(conversation_text: str) -> dict:
     prompt = INSIGHT_EXTRACTION_PROMPT.format(conversation=conversation_text)
     try:
         response = await asyncio.to_thread(
-            model.generate_content,
-            prompt,
-            generation_config={"temperature": 0.3, "max_output_tokens": 500},
+            client.models.generate_content,
+            model=settings.gemini_model,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                temperature=0.3,
+                max_output_tokens=500,
+            ),
         )
         text = response.text.strip()
         # Strip markdown code fences if present
@@ -168,9 +176,13 @@ async def generate_nudge(user_id: str, nudge_type: str) -> dict:
 
     try:
         response = await asyncio.to_thread(
-            model.generate_content,
-            prompt,
-            generation_config={"temperature": 0.7, "max_output_tokens": 300},
+            client.models.generate_content,
+            model=settings.gemini_model,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                temperature=0.7,
+                max_output_tokens=300,
+            ),
         )
         text = response.text.strip()
         if text.startswith("```"):

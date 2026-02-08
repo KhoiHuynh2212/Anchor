@@ -11,10 +11,12 @@ import {
   Platform,
   Alert,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { Audio } from "expo-av";
 import { readAsStringAsync, EncodingType } from "expo-file-system/legacy";
 import { T } from "../../theme";
 import api from "../../services/api";
+import AppIcon from "../../components/AppIcon";
 
 type Message = {
   role: "user" | "assistant";
@@ -171,42 +173,55 @@ export default function EveningCheckinScreen() {
   };
 
   const renderMessage = ({ item }: { item: Message }) => (
-    <View
-      style={[
-        styles.messageBubble,
-        item.role === "user" ? styles.userBubble : styles.aiBubble,
-      ]}
-    >
-      <Text
-        style={[
-          styles.messageText,
-          item.role === "user" ? styles.userText : styles.aiText,
-        ]}
+    item.role === "user" ? (
+      <LinearGradient
+        colors={[T.primary, T.accent]}
+        style={[styles.messageBubble, styles.userBubble]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
       >
-        {item.content}
-      </Text>
-      {item.role === "assistant" && item.audio_base64 ? (
-        <TouchableOpacity
-          style={styles.replayButton}
-          onPress={() => playAudio(item.audio_base64!)}
-        >
-          <Text style={styles.replayText}>{"\uD83D\uDD0A"} Replay</Text>
-        </TouchableOpacity>
-      ) : null}
-    </View>
+        <Text style={[styles.messageText, styles.userText]}>
+          {item.content}
+        </Text>
+      </LinearGradient>
+    ) : (
+      <View style={[styles.messageBubble, styles.aiBubble]}>
+        <Text style={[styles.messageText, styles.aiText]}>
+          {item.content}
+        </Text>
+        {item.audio_base64 ? (
+          <TouchableOpacity
+            style={styles.replayButton}
+            onPress={() => playAudio(item.audio_base64!)}
+          >
+            <View style={styles.replayRow}>
+              <AppIcon name="volume-high" size={14} color={T.primary} />
+              <Text style={styles.replayText}>Replay</Text>
+            </View>
+          </TouchableOpacity>
+        ) : null}
+      </View>
+    )
   );
 
   // Pre-start screen
   if (!started) {
     return (
       <View style={styles.startContainer}>
-        <Text style={{ fontSize: 48, marginBottom: 24 }}>{"\uD83C\uDF19"}</Text>
+        <AppIcon name="moon" size={48} color={T.primary} style={{ marginBottom: 24 }} />
         <Text style={styles.startTitle}>Evening Reflection</Text>
         <Text style={styles.startSubtitle}>
           Take a few minutes to check in with yourself. Anchor will guide you through a reflective conversation.
         </Text>
-        <TouchableOpacity style={styles.startButton} onPress={startCheckin}>
-          <Text style={styles.startButtonText}>Begin Check-in</Text>
+        <TouchableOpacity onPress={startCheckin} activeOpacity={0.85}>
+          <LinearGradient
+            colors={[T.primary, T.accent]}
+            style={styles.startButton}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            <Text style={styles.startButtonText}>Begin Check-in</Text>
+          </LinearGradient>
         </TouchableOpacity>
       </View>
     );
@@ -219,9 +234,14 @@ export default function EveningCheckinScreen() {
     >
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.moonAvatar}>
-          <Text style={{ fontSize: 18 }}>{"\uD83C\uDF19"}</Text>
-        </View>
+        <LinearGradient
+          colors={['#003F66', '#0077B6']}
+          style={styles.moonAvatar}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <AppIcon name="moon" size={18} color="#fff" />
+        </LinearGradient>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>Evening Reflection</Text>
           <Text style={styles.headerSubtitle}>
@@ -230,7 +250,10 @@ export default function EveningCheckinScreen() {
         </View>
         {complete ? (
           <View style={styles.completeBadge}>
-            <Text style={styles.completeBadgeText}>{"\u2713"} Done</Text>
+            <View style={styles.completeBadgeRow}>
+              <AppIcon name="checkmark" size={12} color={T.success} />
+              <Text style={styles.completeBadgeText}>Done</Text>
+            </View>
           </View>
         ) : messages.length > 0 ? (
           <TouchableOpacity
@@ -268,10 +291,14 @@ export default function EveningCheckinScreen() {
           <Text style={styles.insightsTitle}>Session Insights</Text>
           <View style={styles.insightRow}>
             <Text style={styles.insightLabel}>Mood:</Text>
-            <Text style={styles.insightValue}>
-              {insights.mood === "positive" ? "\uD83D\uDE0A" : insights.mood === "negative" ? "\uD83D\uDE14" : "\uD83D\uDE10"}{" "}
-              {insights.mood}
-            </Text>
+            <View style={styles.insightValueRow}>
+              <AppIcon
+                name={insights.mood === "positive" ? "happy-outline" : insights.mood === "negative" ? "sad-outline" : "remove-outline"}
+                size={14}
+                color={T.textSecondary}
+              />
+              <Text style={styles.insightValueText}>{insights.mood}</Text>
+            </View>
           </View>
           {insights.accomplishments.length > 0 && (
             <View style={styles.insightRow}>
@@ -303,19 +330,33 @@ export default function EveningCheckinScreen() {
           />
           {input.trim() ? (
             <TouchableOpacity
-              style={styles.sendButton}
               onPress={() => sendMessage()}
               disabled={loading}
+              activeOpacity={0.85}
             >
-              <Text style={styles.sendIcon}>{"\u2191"}</Text>
+              <LinearGradient
+                colors={[T.primary, T.accent]}
+                style={styles.sendButton}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <AppIcon name="arrow-up" size={20} color="#fff" />
+              </LinearGradient>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
-              style={[styles.micButton, isRecording && styles.micButtonRecording]}
               onPressIn={startRecording}
               onPressOut={stopRecording}
+              activeOpacity={0.85}
             >
-              <Text style={styles.micIcon}>{"\uD83C\uDFA4"}</Text>
+              <LinearGradient
+                colors={isRecording ? [T.danger, T.accent] : [T.primary, T.accent]}
+                style={[styles.micButton, isRecording && styles.micButtonRecording]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <AppIcon name="mic" size={20} color="#fff" />
+              </LinearGradient>
             </TouchableOpacity>
           )}
         </View>
@@ -333,9 +374,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 32,
   },
-  startTitle: { fontSize: 28, fontWeight: "300", color: T.text, marginBottom: 12 },
+  startTitle: { fontSize: 28, fontFamily: T.fontDisplay, color: T.text, marginBottom: 12 },
   startSubtitle: {
     fontSize: 15,
+    fontFamily: T.font,
     color: T.textSecondary,
     textAlign: "center",
     lineHeight: 24,
@@ -343,12 +385,11 @@ const styles = StyleSheet.create({
     maxWidth: 300,
   },
   startButton: {
-    backgroundColor: T.primary,
     borderRadius: 30,
     paddingVertical: 18,
     paddingHorizontal: 48,
   },
-  startButtonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+  startButtonText: { color: "#fff", fontSize: 16, fontFamily: T.fontSemiBold },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -362,26 +403,26 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 14,
-    backgroundColor: T.bgDark,
     alignItems: "center",
     justifyContent: "center",
   },
-  headerTitle: { fontSize: 16, fontWeight: "600", color: T.text },
-  headerSubtitle: { fontSize: 12, color: T.textMuted },
+  headerTitle: { fontSize: 16, fontFamily: T.fontSemiBold, color: T.text },
+  headerSubtitle: { fontSize: 12, fontFamily: T.font, color: T.textMuted },
   completeBadge: {
     backgroundColor: T.successSoft,
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
-  completeBadgeText: { color: T.success, fontSize: 12, fontWeight: "600" },
+  completeBadgeRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  completeBadgeText: { color: T.success, fontSize: 12, fontFamily: T.fontSemiBold },
   endSessionButton: {
     backgroundColor: T.surface,
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 6,
   },
-  endSessionText: { color: T.textSecondary, fontSize: 12, fontWeight: "600" },
+  endSessionText: { color: T.textSecondary, fontSize: 12, fontFamily: T.fontSemiBold },
   messageList: { padding: 20, paddingBottom: 8 },
   messageBubble: {
     maxWidth: "82%",
@@ -392,7 +433,6 @@ const styles = StyleSheet.create({
   },
   userBubble: {
     alignSelf: "flex-end",
-    backgroundColor: T.primary,
     borderBottomRightRadius: 6,
   },
   aiBubble: {
@@ -405,11 +445,12 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 2,
   },
-  messageText: { fontSize: 15, lineHeight: 22 },
+  messageText: { fontSize: 15, fontFamily: T.font, lineHeight: 22 },
   userText: { color: "#fff" },
   aiText: { color: T.text },
   replayButton: { marginTop: 8 },
-  replayText: { fontSize: 12, color: T.primary, fontWeight: "500" },
+  replayRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  replayText: { fontSize: 12, fontFamily: T.fontMedium, color: T.primary },
   typingIndicator: { paddingHorizontal: 20, paddingBottom: 8 },
   typingBubble: {
     alignSelf: "flex-start",
@@ -437,7 +478,7 @@ const styles = StyleSheet.create({
   },
   insightsTitle: {
     fontSize: 16,
-    fontWeight: "600",
+    fontFamily: T.fontSemiBold,
     color: T.text,
     marginBottom: 12,
   },
@@ -446,8 +487,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     gap: 8,
   },
-  insightLabel: { fontSize: 13, fontWeight: "600", color: T.textSecondary },
-  insightValue: { fontSize: 13, color: T.text, flex: 1 },
+  insightLabel: { fontSize: 13, fontFamily: T.fontSemiBold, color: T.textSecondary },
+  insightValue: { fontSize: 13, fontFamily: T.font, color: T.text, flex: 1 },
+  insightValueRow: { flexDirection: "row", alignItems: "center", gap: 6, flex: 1 },
+  insightValueText: { fontSize: 13, fontFamily: T.font, color: T.text },
   inputRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -464,6 +507,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 14,
     fontSize: 14,
+    fontFamily: T.font,
     color: T.text,
     borderWidth: 1.5,
     borderColor: T.border,
@@ -472,22 +516,17 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 23,
-    backgroundColor: T.primary,
     alignItems: "center",
     justifyContent: "center",
   },
-  sendIcon: { color: "#fff", fontSize: 22, fontWeight: "700" },
   micButton: {
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: T.primary,
     alignItems: "center",
     justifyContent: "center",
   },
   micButtonRecording: {
-    backgroundColor: T.danger,
     transform: [{ scale: 1.1 }],
   },
-  micIcon: { fontSize: 22 },
 });

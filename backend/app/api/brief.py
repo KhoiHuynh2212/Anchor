@@ -36,6 +36,7 @@ async def get_today_brief(user_id: str = Depends(get_current_user_id)):
 
     brief = {
         "user_id": user_id,
+        "date": date.today().strftime("%Y-%m-%d"),
         "text": brief_data["text"],
         "nickname": brief_data.get("nickname", "friend"),
         "audio_base64": audio_base64,

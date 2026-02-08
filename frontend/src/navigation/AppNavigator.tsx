@@ -1,9 +1,12 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { BottomTabBarProps, createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { useAuth } from "../context/AuthContext";
 import { T } from "../theme";
-import { View, Text } from "react-native";
+import { View, Text, Pressable, StyleSheet } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 
 // Auth screens
 import WelcomeScreen from "../screens/Auth/WelcomeScreen";
@@ -17,50 +20,87 @@ import OnboardingChatScreen from "../screens/Onboarding/OnboardingChatScreen";
 // Main screens
 import MorningBriefScreen from "../screens/Main/MorningBriefScreen";
 import NudgeFeedScreen from "../screens/Main/NudgeFeedScreen";
-import EveningCheckinScreen from "../screens/Main/EveningCheckinScreen";
 import JourneyScreen from "../screens/Main/JourneyScreen";
 import VoiceChatScreen from "../screens/Main/VoiceChatScreen";
+import NotificationsScreen from "../screens/Main/NotificationsScreen";
 import SettingsScreen from "../screens/Settings/SettingsScreen";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-function TabIcon({ label, focused }: { label: string; focused: boolean }) {
-  const icons: Record<string, string> = {
-    Brief: "☀️",
-    Nudges: "🔔",
-    "Check-in": "🌙",
-    Journey: "📊",
-    Settings: "⚙️",
-  };
+function SageTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+  const insets = useSafeAreaInsets();
 
   return (
-    <View style={{ alignItems: "center", justifyContent: "center" }}>
-      <View
-        style={{
-          width: 40,
-          height: 32,
-          borderRadius: 16,
-          backgroundColor: focused ? T.primary + "15" : "transparent",
-          alignItems: "center",
-          justifyContent: "center",
-          marginBottom: 2,
-        }}
-      >
-        <Text style={{ fontSize: 18 }}>{icons[label] || "•"}</Text>
-      </View>
-      {focused && (
-        <View
-          style={{
-            width: 4,
-            height: 4,
-            borderRadius: 2,
-            backgroundColor: T.primary,
-            position: "absolute",
-            bottom: -6,
-          }}
-        />
-      )}
+    <View style={[tabStyles.wrap, { paddingBottom: Math.max(18, insets.bottom + 10) }]}>
+      {state.routes.map((route, index) => {
+        const { options } = descriptors[route.key];
+        const label = (options.tabBarLabel ?? options.title ?? route.name) as string;
+        const isFocused = state.index === index;
+
+        const onPress = () => {
+          const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
+          if (!isFocused && !event.defaultPrevented) navigation.navigate(route.name);
+        };
+
+        const onLongPress = () => navigation.emit({ type: "tabLongPress", target: route.key });
+
+        const iconMap: Record<string, keyof typeof Ionicons.glyphMap> = {
+          Home: "home-outline",
+          Voice: "mic-outline",
+          Notifications: "notifications-outline",
+          Journey: "trending-up-outline",
+        };
+
+        const iconName = iconMap[route.name] || "ellipse-outline";
+        const isCenter = route.name === "Voice";
+
+        return (
+          <Pressable
+            key={route.key}
+            accessibilityRole="button"
+            accessibilityState={isFocused ? { selected: true } : {}}
+            accessibilityLabel={options.tabBarAccessibilityLabel}
+            testID={options.tabBarButtonTestID}
+            onPress={onPress}
+            onLongPress={onLongPress}
+            style={[tabStyles.item, isCenter && tabStyles.centerItem]}
+          >
+            {isCenter ? (
+              <View style={{ alignItems: "center" }}>
+                {isFocused ? (
+                  <LinearGradient
+                    colors={[T.primary, T.accent]}
+                    style={tabStyles.centerButton}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                  >
+                    <Ionicons name="mic" size={22} color="#fff" />
+                  </LinearGradient>
+                ) : (
+                  <View style={tabStyles.centerButtonIdle}>
+                    <Ionicons name="mic-outline" size={22} color={T.primary} />
+                  </View>
+                )}
+                <Text style={[tabStyles.label, isFocused ? tabStyles.labelActive : tabStyles.labelInactive]}>
+                  {label}
+                </Text>
+              </View>
+            ) : (
+              <View style={{ alignItems: "center" }}>
+                <Ionicons
+                  name={iconName}
+                  size={20}
+                  color={isFocused ? T.primary : T.textMuted}
+                />
+                <Text style={[tabStyles.label, isFocused ? tabStyles.labelActive : tabStyles.labelInactive]}>
+                  {label}
+                </Text>
+              </View>
+            )}
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
@@ -70,57 +110,25 @@ function MainTabs() {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarStyle: {
-          backgroundColor: T.bgCard,
-          borderTopColor: T.border,
-          height: 85,
-          paddingTop: 12,
-          paddingBottom: 28, // iOS safe area
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.05,
-          shadowRadius: 10,
-          elevation: 5,
-        },
-        tabBarShowLabel: false, // Hide default labels, we'll use icon only or custom
-        tabBarActiveTintColor: T.primary,
-        tabBarInactiveTintColor: T.textMuted,
+        tabBarStyle: { display: "none" }, // we render our own
       }}
+      tabBar={(props) => <SageTabBar {...props} />}
     >
       <Tab.Screen
-        name="Brief"
+        name="Home"
         component={MorningBriefScreen}
-        options={{
-          tabBarIcon: ({ focused }) => <TabIcon label="Brief" focused={focused} />,
-        }}
       />
       <Tab.Screen
-        name="Nudges"
-        component={NudgeFeedScreen}
-        options={{
-          tabBarIcon: ({ focused }) => <TabIcon label="Nudges" focused={focused} />,
-        }}
+        name="Voice"
+        component={VoiceChatScreen}
       />
       <Tab.Screen
-        name="Check-in"
-        component={EveningCheckinScreen}
-        options={{
-          tabBarIcon: ({ focused }) => <TabIcon label="Check-in" focused={focused} />,
-        }}
+        name="Notifications"
+        component={NotificationsScreen}
       />
       <Tab.Screen
         name="Journey"
         component={JourneyScreen}
-        options={{
-          tabBarIcon: ({ focused }) => <TabIcon label="Journey" focused={focused} />,
-        }}
-      />
-      <Tab.Screen
-        name="Settings"
-        component={SettingsScreen}
-        options={{
-          tabBarIcon: ({ focused }) => <TabIcon label="Settings" focused={focused} />,
-        }}
       />
     </Tab.Navigator>
   );
@@ -154,13 +162,61 @@ export default function AppNavigator() {
       ) : (
         <>
           <Stack.Screen name="MainTabs" component={MainTabs} />
-          <Stack.Screen
-            name="VoiceChat"
-            component={VoiceChatScreen}
-            options={{ presentation: 'modal', gestureEnabled: false }}
-          />
+          <Stack.Screen name="Nudges" component={NudgeFeedScreen} />
+          <Stack.Screen name="Settings" component={SettingsScreen} />
         </>
       )}
     </Stack.Navigator>
   );
 }
+
+const tabStyles = StyleSheet.create({
+  wrap: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-around",
+    paddingTop: 6,
+    paddingHorizontal: 4,
+    backgroundColor: "rgba(230,242,250,0.88)",
+    borderTopWidth: 1,
+    borderTopColor: T.borderLight,
+  },
+  item: { flex: 1, alignItems: "center", justifyContent: "flex-end", paddingBottom: 6 },
+  centerItem: { transform: [{ translateY: -8 }] },
+  icon: { fontSize: 20, marginBottom: 3 },
+  label: { fontFamily: T.fontSemiBold, fontSize: 10, marginTop: 2 },
+  labelActive: { color: T.primary },
+  labelInactive: { color: T.textMuted, fontWeight: "500" },
+  centerButton: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: T.primary,
+    shadowOpacity: 0.22,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6,
+  },
+  centerButtonIdle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: T.bgCard,
+    borderWidth: 1.5,
+    borderColor: T.borderLight,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: T.shadowColor,
+    shadowOpacity: T.shadowMdOpacity,
+    shadowRadius: T.shadowMdRadius,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  centerIcon: { fontSize: 22, color: "#fff" },
+});

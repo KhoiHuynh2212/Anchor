@@ -28,4 +28,25 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
+// If backend says token is invalid, refresh once and retry.
+api.interceptors.response.use(
+  (res) => res,
+  async (error) => {
+    const original = error?.config;
+    const status = error?.response?.status;
+
+    if (status === 401 && original && !original.__retried) {
+      original.__retried = true;
+      const { data, error: refreshError } = await supabase.auth.refreshSession();
+      if (!refreshError && data.session?.access_token) {
+        original.headers = original.headers || {};
+        original.headers.Authorization = `Bearer ${data.session.access_token}`;
+        return api(original);
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
 export default api;

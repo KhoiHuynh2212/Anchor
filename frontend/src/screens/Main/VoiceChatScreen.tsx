@@ -7,22 +7,25 @@ import {
     Animated,
     Easing,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { useNavigation } from "@react-navigation/native";
 import { T } from "../../theme";
+import AppIcon from "../../components/AppIcon";
 
 type VoiceState = "idle" | "listening" | "thinking" | "speaking";
 
 const STATE_CONFIG = {
-    idle: { label: "Tap to speak", sublabel: "Anchor is ready" },
+    idle: { label: "Tap to speak", sublabel: "Sage is ready" },
     listening: { label: "Listening...", sublabel: "" },
     thinking: { label: "Thinking...", sublabel: "Processing" },
-    speaking: { label: "Anchor is speaking", sublabel: "Tap to interrupt" },
+    speaking: { label: "Sage is speaking", sublabel: "Tap to interrupt" },
 };
 
 export default function VoiceChatScreen({ navigation }: any) {
+    const nav = useNavigation<any>();
     const [state, setState] = useState<VoiceState>("idle");
     const [elapsed, setElapsed] = useState(0);
     const pulseAnim = useRef(new Animated.Value(1)).current;
-    const glowAnim = useRef(new Animated.Value(0.3)).current;
 
     // Demo: Cycle through states
     useEffect(() => {
@@ -71,6 +74,19 @@ export default function VoiceChatScreen({ navigation }: any) {
 
     const cfg = STATE_CONFIG[state];
 
+    const getOrbColors = (): [string, string] => {
+        if (state === "listening") return [T.accent, T.primaryLight];
+        if (state === "speaking") return [T.primaryLight, T.accent];
+        if (state === "thinking") return ["#0096C7", T.primary];
+        return [T.primary, T.accent];
+    };
+
+    const getMicColors = (): [string, string] => {
+        if (state === "listening") return [T.accent, T.primaryLight];
+        if (state === "speaking") return ["rgba(255,255,255,0.15)", "rgba(255,255,255,0.05)"];
+        return [T.primary, T.accent];
+    };
+
     return (
         <View style={styles.container}>
             {/* Ambient glow */}
@@ -80,18 +96,18 @@ export default function VoiceChatScreen({ navigation }: any) {
             <View style={styles.header}>
                 <TouchableOpacity
                     style={styles.headerButton}
-                    onPress={() => navigation.goBack()}
+                    onPress={() => (navigation?.navigate ? navigation.navigate("Home") : nav.navigate("Home"))}
                 >
-                    <Text style={styles.headerIcon}>✕</Text>
+                    <AppIcon name="chevron-back" size={18} color="rgba(255,255,255,0.7)" />
                 </TouchableOpacity>
 
                 <View style={styles.sessionBadge}>
                     <View style={[styles.sessionDot, state !== "idle" && styles.sessionDotActive]} />
-                    <Text style={styles.sessionText}>Voice Session</Text>
+                    <Text style={styles.sessionText}>Voice session</Text>
                 </View>
 
                 <View style={styles.headerButton}>
-                    <Text style={styles.headerIcon}>⋮</Text>
+                    <AppIcon name="ellipsis-vertical" size={16} color="rgba(255,255,255,0.7)" />
                 </View>
             </View>
 
@@ -99,21 +115,23 @@ export default function VoiceChatScreen({ navigation }: any) {
             <View style={styles.centerArea}>
                 {/* Anchor identity */}
                 <View style={styles.anchorIdentity}>
-                    <View style={styles.anchorLogo}>
-                        <Text style={styles.anchorEmoji}>⚓</Text>
-                    </View>
-                    <Text style={styles.anchorName}>Anchor</Text>
-                    <Text style={styles.anchorContext}>Evening reflection</Text>
+                    <LinearGradient
+                        colors={[T.primary, T.accent]}
+                        style={styles.anchorLogo}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                    >
+                        <AppIcon name="leaf" size={22} color="#fff" />
+                    </LinearGradient>
+                    <Text style={styles.anchorName}>Sage</Text>
+                    <Text style={styles.anchorContext}>Voice session</Text>
                 </View>
 
                 {/* The Orb */}
                 <Animated.View
                     style={[
-                        styles.orb,
+                        styles.orbWrapper,
                         { transform: [{ scale: pulseAnim }] },
-                        state === "listening" && styles.orbListening,
-                        state === "speaking" && styles.orbSpeaking,
-                        state === "thinking" && styles.orbThinking,
                     ]}
                 >
                     {/* Pulse rings for listening/speaking */}
@@ -123,9 +141,15 @@ export default function VoiceChatScreen({ navigation }: any) {
                             <View style={[styles.pulseRing, styles.pulseRing2]} />
                         </>
                     )}
-
-                    {/* Inner shine */}
-                    <View style={styles.orbInner} />
+                    <LinearGradient
+                        colors={getOrbColors()}
+                        style={styles.orb}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                    >
+                        {/* Inner shine */}
+                        <View style={styles.orbInner} />
+                    </LinearGradient>
                 </Animated.View>
 
                 {/* State label */}
@@ -140,14 +164,14 @@ export default function VoiceChatScreen({ navigation }: any) {
                 {state === "speaking" && (
                     <View style={styles.transcriptBox}>
                         <Text style={styles.transcriptText}>
-                            "That deadline stress is completely valid. Let's break down what you need to finish..."
+                            I hear you. That deadline pressure is real — but you've got time. Let's break it down.
                         </Text>
                     </View>
                 )}
                 {state === "listening" && (
                     <View style={[styles.transcriptBox, styles.transcriptListening]}>
                         <Text style={[styles.transcriptText, { color: T.accentWarm }]}>
-                            "I didn't get to work on my AI4All application today and..."
+                            I'm feeling kind of stressed about the AI4All deadline...
                         </Text>
                     </View>
                 )}
@@ -157,30 +181,34 @@ export default function VoiceChatScreen({ navigation }: any) {
             <View style={styles.bottomControls}>
                 {/* Mute */}
                 <TouchableOpacity style={styles.controlButton}>
-                    <Text style={styles.controlIcon}>🔇</Text>
+                    <AppIcon name="volume-mute" size={18} color="rgba(255,255,255,0.7)" />
                 </TouchableOpacity>
 
                 {/* Main mic button */}
-                <TouchableOpacity
-                    style={[
-                        styles.mainMicButton,
-                        state === "listening" && styles.mainMicButtonListening,
-                        state === "speaking" && styles.mainMicButtonSpeaking,
-                    ]}
-                >
-                    {state === "speaking" ? (
-                        <Text style={styles.mainMicIcon}>⏹</Text>
-                    ) : (
-                        <Text style={styles.mainMicIcon}>🎤</Text>
-                    )}
+                <TouchableOpacity activeOpacity={0.85}>
+                    <LinearGradient
+                        colors={getMicColors()}
+                        style={[
+                            styles.mainMicButton,
+                            state === "listening" && styles.mainMicButtonListening,
+                        ]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                    >
+                        {state === "speaking" ? (
+                            <AppIcon name="stop" size={20} color="#fff" />
+                        ) : (
+                            <AppIcon name="mic" size={20} color="#fff" />
+                        )}
+                    </LinearGradient>
                 </TouchableOpacity>
 
                 {/* End call */}
                 <TouchableOpacity
                     style={styles.endButton}
-                    onPress={() => navigation.goBack()}
+                    onPress={() => (navigation?.navigate ? navigation.navigate("Home") : nav.navigate("Home"))}
                 >
-                    <Text style={styles.endIcon}>📵</Text>
+                    <AppIcon name="call" size={20} color="#EA4335" />
                 </TouchableOpacity>
             </View>
         </View>
@@ -218,10 +246,6 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
     },
-    headerIcon: {
-        color: "rgba(255,255,255,0.7)",
-        fontSize: 18,
-    },
     sessionBadge: {
         flexDirection: "row",
         alignItems: "center",
@@ -239,7 +263,7 @@ const styles = StyleSheet.create({
     sessionText: {
         color: "rgba(255,255,255,0.5)",
         fontSize: 13,
-        fontWeight: "500",
+        fontFamily: T.fontMedium,
     },
     centerArea: {
         alignItems: "center",
@@ -252,29 +276,31 @@ const styles = StyleSheet.create({
         width: 52,
         height: 52,
         borderRadius: 18,
-        backgroundColor: T.primary,
         alignItems: "center",
         justifyContent: "center",
         marginBottom: 12,
     },
-    anchorEmoji: {
-        fontSize: 26,
-    },
     anchorName: {
         fontSize: 22,
+        fontFamily: T.fontDisplay,
         color: "#fff",
-        fontWeight: "400",
         marginBottom: 4,
     },
     anchorContext: {
         fontSize: 13,
+        fontFamily: T.font,
         color: "rgba(255,255,255,0.4)",
+    },
+    orbWrapper: {
+        width: 180,
+        height: 180,
+        alignItems: "center",
+        justifyContent: "center",
     },
     orb: {
         width: 180,
         height: 180,
         borderRadius: 90,
-        backgroundColor: T.primary,
         alignItems: "center",
         justifyContent: "center",
         shadowColor: T.primary,
@@ -282,15 +308,6 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.3,
         shadowRadius: 60,
         elevation: 10,
-    },
-    orbListening: {
-        backgroundColor: T.accent,
-    },
-    orbSpeaking: {
-        backgroundColor: T.primaryLight,
-    },
-    orbThinking: {
-        backgroundColor: "#0096C7",
     },
     pulseRing: {
         position: "absolute",
@@ -317,12 +334,13 @@ const styles = StyleSheet.create({
     },
     stateLabelText: {
         fontSize: 17,
-        fontWeight: "500",
+        fontFamily: T.fontMedium,
         color: "#fff",
         marginBottom: 4,
     },
     stateSublabel: {
         fontSize: 13,
+        fontFamily: T.font,
         color: "rgba(255,255,255,0.35)",
     },
     transcriptBox: {
@@ -339,6 +357,7 @@ const styles = StyleSheet.create({
     },
     transcriptText: {
         fontSize: 14,
+        fontFamily: T.font,
         color: "rgba(255,255,255,0.7)",
         lineHeight: 21,
         textAlign: "center",
@@ -356,14 +375,10 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
     },
-    controlIcon: {
-        fontSize: 20,
-    },
     mainMicButton: {
         width: 72,
         height: 72,
         borderRadius: 36,
-        backgroundColor: T.primary,
         alignItems: "center",
         justifyContent: "center",
         shadowColor: T.primary,
@@ -373,14 +388,7 @@ const styles = StyleSheet.create({
         elevation: 8,
     },
     mainMicButtonListening: {
-        backgroundColor: T.accent,
         transform: [{ scale: 1.08 }],
-    },
-    mainMicButtonSpeaking: {
-        backgroundColor: "rgba(255,255,255,0.1)",
-    },
-    mainMicIcon: {
-        fontSize: 26,
     },
     endButton: {
         width: 52,
@@ -391,8 +399,5 @@ const styles = StyleSheet.create({
         borderColor: `${T.danger}20`,
         alignItems: "center",
         justifyContent: "center",
-    },
-    endIcon: {
-        fontSize: 20,
     },
 });

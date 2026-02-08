@@ -10,9 +10,11 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { T } from "../../theme";
 import api from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
+import AppIcon from "../../components/AppIcon";
 
 type Message = {
   role: "user" | "assistant";
@@ -92,21 +94,24 @@ export default function OnboardingChatScreen() {
   };
 
   const renderMessage = ({ item }: { item: Message }) => (
-    <View
-      style={[
-        styles.messageBubble,
-        item.role === "user" ? styles.userBubble : styles.aiBubble,
-      ]}
-    >
-      <Text
-        style={[
-          styles.messageText,
-          item.role === "user" ? styles.userText : styles.aiText,
-        ]}
+    item.role === "user" ? (
+      <LinearGradient
+        colors={[T.primary, T.accent]}
+        style={[styles.messageBubble, styles.userBubble]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
       >
-        {item.content}
-      </Text>
-    </View>
+        <Text style={[styles.messageText, styles.userText]}>
+          {item.content}
+        </Text>
+      </LinearGradient>
+    ) : (
+      <View style={[styles.messageBubble, styles.aiBubble]}>
+        <Text style={[styles.messageText, styles.aiText]}>
+          {item.content}
+        </Text>
+      </View>
+    )
   );
 
   return (
@@ -117,9 +122,14 @@ export default function OnboardingChatScreen() {
     >
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.sageAvatar}>
-          <Text style={{ fontSize: 20 }}>{"\uD83C\uDF3F"}</Text>
-        </View>
+        <LinearGradient
+          colors={[T.primary, T.accent]}
+          style={styles.sageAvatar}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <AppIcon name="leaf" size={20} color="#fff" />
+        </LinearGradient>
         <View>
           <Text style={styles.headerTitle}>Anchor</Text>
           <Text style={styles.headerSubtitle}>Getting to know you...</Text>
@@ -157,11 +167,18 @@ export default function OnboardingChatScreen() {
           multiline={false}
         />
         <TouchableOpacity
-          style={[styles.sendButton, (!input.trim() || loading) && styles.sendButtonDisabled]}
           onPress={() => sendMessage()}
           disabled={!input.trim() || loading}
+          activeOpacity={0.85}
         >
-          <Text style={styles.sendButtonText}>{"\u2191"}</Text>
+          <LinearGradient
+            colors={input.trim() && !loading ? [T.primary, T.accent] : [T.primarySoft, T.primarySoft]}
+            style={[styles.sendButton, (!input.trim() || loading) && styles.sendButtonDisabled]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <AppIcon name="arrow-up" size={20} color="#fff" />
+          </LinearGradient>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -183,12 +200,11 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 14,
-    backgroundColor: T.primary,
     alignItems: "center",
     justifyContent: "center",
   },
-  headerTitle: { fontSize: 16, fontWeight: "600", color: T.text },
-  headerSubtitle: { fontSize: 12, color: T.success },
+  headerTitle: { fontSize: 16, fontFamily: T.fontSemiBold, color: T.text },
+  headerSubtitle: { fontSize: 12, fontFamily: T.font, color: T.success },
   messageList: { padding: 20, paddingBottom: 8 },
   messageBubble: {
     maxWidth: "82%",
@@ -199,7 +215,6 @@ const styles = StyleSheet.create({
   },
   userBubble: {
     alignSelf: "flex-end",
-    backgroundColor: T.primary,
     borderBottomRightRadius: 6,
   },
   aiBubble: {
@@ -212,7 +227,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 2,
   },
-  messageText: { fontSize: 15, lineHeight: 22 },
+  messageText: { fontSize: 15, fontFamily: T.font, lineHeight: 22 },
   userText: { color: "#fff" },
   aiText: { color: T.text },
   typingIndicator: { paddingHorizontal: 20, paddingBottom: 8 },
@@ -245,6 +260,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 14,
     fontSize: 14,
+    fontFamily: T.font,
     color: T.text,
     borderWidth: 1.5,
     borderColor: T.border,
@@ -253,10 +269,8 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 23,
-    backgroundColor: T.primary,
     alignItems: "center",
     justifyContent: "center",
   },
   sendButtonDisabled: { opacity: 0.4 },
-  sendButtonText: { color: "#fff", fontSize: 22, fontWeight: "700" },
 });

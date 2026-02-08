@@ -5,9 +5,10 @@ import {
     TouchableOpacity,
     StyleSheet,
     ScrollView,
-    Image,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { T } from "../../theme";
+import AppIcon from "../../components/AppIcon";
 
 // Mock data for demo
 const MOOD_DATA = [
@@ -21,15 +22,15 @@ const MOOD_DATA = [
 ];
 
 const GOALS = [
-    { label: "Complete AI4All Application", progress: 75 },
-    { label: "Exercise 3x per week", progress: 67 },
-    { label: "Read 20 pages daily", progress: 40 },
+    { label: "Google SWE Internship", progress: 75, icon: "briefcase-outline", color: T.primary },
+    { label: "AI/ML Course", progress: 67, icon: "school-outline", color: T.accent },
+    { label: "Half Marathon", progress: 40, icon: "walk-outline", color: T.success },
 ];
 
 const NETWORK = [
-    { name: "Sarah", emoji: "👩" },
-    { name: "Mike", emoji: "👨" },
-    { name: "Alex", emoji: "🧑" },
+    { name: "Sarah Chen", role: "ML Engineer", company: "Google", helpsWith: "AI interviews" },
+    { name: "Mike Ross", role: "CS Professor", company: "OU", helpsWith: "Research guidance" },
+    { name: "Alex Kim", role: "Running Coach", company: "Freelance", helpsWith: "Training plans" },
 ];
 
 export default function JourneyScreen() {
@@ -37,27 +38,38 @@ export default function JourneyScreen() {
         <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 120 }}>
             {/* Header */}
             <View style={styles.header}>
-                <Text style={styles.heading}>Your Journey</Text>
+                <Text style={styles.heading}>Journey</Text>
                 <Text style={styles.subheading}>Track your progress and insights</Text>
             </View>
 
             {/* Mood Trends */}
             <View style={styles.card}>
+                <Text style={styles.sectionLabel}>MOOD TRENDS</Text>
                 <View style={styles.cardHeader}>
-                    <Text style={styles.cardTitle}>Mood Trends</Text>
-                    <Text style={styles.cardSubtitle}>This week</Text>
+                    <Text style={styles.cardTitle}>This week</Text>
+                    <Text style={styles.cardSubtitle}>+12% from last week</Text>
                 </View>
                 <View style={styles.moodChart}>
                     {MOOD_DATA.map((item, i) => (
                         <View key={i} style={styles.moodBar}>
+                            <AppIcon
+                                name={item.value >= 0.7 ? "happy-outline" : item.value < 0.5 ? "sad-outline" : "remove-outline"}
+                                size={14}
+                                color={T.textMuted}
+                                style={styles.moodIcon}
+                            />
                             <View style={styles.moodBarTrack}>
-                                <View
-                                    style={[
-                                        styles.moodBarFill,
-                                        { height: `${item.value * 100}%` },
-                                        item.value >= 0.7 && styles.moodBarHigh,
-                                        item.value < 0.5 && styles.moodBarLow,
-                                    ]}
+                                <LinearGradient
+                                    colors={
+                                        item.value >= 0.7
+                                            ? [T.success, T.accentWarm]
+                                            : item.value < 0.5
+                                            ? [T.warning, T.danger]
+                                            : [T.primary, T.accent]
+                                    }
+                                    style={[styles.moodBarFill, { height: `${item.value * 100}%` }]}
+                                    start={{ x: 0, y: 1 }}
+                                    end={{ x: 0, y: 0 }}
                                 />
                             </View>
                             <Text style={styles.moodBarLabel}>{item.day}</Text>
@@ -66,20 +78,21 @@ export default function JourneyScreen() {
                 </View>
                 <View style={styles.moodSummary}>
                     <View style={styles.moodSummaryItem}>
-                        <Text style={styles.moodSummaryValue}>😊</Text>
+                        <AppIcon name="happy-outline" size={16} color={T.primary} />
                         <Text style={styles.moodSummaryLabel}>Average: Good</Text>
                     </View>
                     <View style={styles.moodSummaryItem}>
-                        <Text style={styles.moodSummaryValue}>📈</Text>
-                        <Text style={styles.moodSummaryLabel}>+12% from last week</Text>
+                        <AppIcon name="trending-up-outline" size={16} color={T.primary} />
+                        <Text style={styles.moodSummaryLabel}>Trending up</Text>
                     </View>
                 </View>
             </View>
 
             {/* Goal Progress */}
             <View style={styles.card}>
+                <Text style={styles.sectionLabel}>GOAL PROGRESS</Text>
                 <View style={styles.cardHeader}>
-                    <Text style={styles.cardTitle}>Goal Progress</Text>
+                    <Text style={styles.cardTitle}>Active goals</Text>
                     <TouchableOpacity>
                         <Text style={styles.cardAction}>Edit</Text>
                     </TouchableOpacity>
@@ -87,15 +100,18 @@ export default function JourneyScreen() {
                 {GOALS.map((goal, i) => (
                     <View key={i} style={styles.goalRow}>
                         <View style={styles.goalInfo}>
-                            <Text style={styles.goalLabel}>{goal.label}</Text>
-                            <Text style={styles.goalPercent}>{goal.progress}%</Text>
+                            <View style={styles.goalLabelRow}>
+                                <AppIcon name={goal.icon as React.ComponentProps<typeof AppIcon>["name"]} size={18} color={goal.color} />
+                                <Text style={styles.goalLabel}>{goal.label}</Text>
+                            </View>
+                            <Text style={[styles.goalPercent, { color: goal.color }]}>{goal.progress}%</Text>
                         </View>
                         <View style={styles.goalBarTrack}>
-                            <View
-                                style={[
-                                    styles.goalBarFill,
-                                    { width: `${goal.progress}%` },
-                                ]}
+                            <LinearGradient
+                                colors={[goal.color, goal.color + "80"]}
+                                style={[styles.goalBarFill, { width: `${goal.progress}%` }]}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
                             />
                         </View>
                     </View>
@@ -104,71 +120,62 @@ export default function JourneyScreen() {
 
             {/* Your Network */}
             <View style={styles.card}>
+                <Text style={styles.sectionLabel}>YOUR NETWORK</Text>
                 <View style={styles.cardHeader}>
-                    <Text style={styles.cardTitle}>Your Network</Text>
+                    <Text style={styles.cardTitle}>Accountability partners</Text>
                     <TouchableOpacity>
                         <Text style={styles.cardAction}>Manage</Text>
                     </TouchableOpacity>
                 </View>
-                <Text style={styles.networkSubtext}>
-                    Accountability partners and mentors rooting for you
-                </Text>
-                <View style={styles.networkList}>
-                    {NETWORK.map((person, i) => (
-                        <View key={i} style={styles.networkItem}>
-                            <View style={styles.networkAvatar}>
-                                <Text style={{ fontSize: 24 }}>{person.emoji}</Text>
-                            </View>
-                            <Text style={styles.networkName}>{person.name}</Text>
+                {NETWORK.map((person, i) => (
+                    <TouchableOpacity key={i} style={styles.contactCard} activeOpacity={0.7}>
+                        <View style={styles.contactAvatar}>
+                            <Text style={styles.contactInitial}>
+                                {person.name.charAt(0)}
+                            </Text>
                         </View>
-                    ))}
-                    <TouchableOpacity style={styles.networkAdd}>
-                        <Text style={styles.networkAddIcon}>+</Text>
+                        <View style={styles.contactInfo}>
+                            <Text style={styles.contactName}>{person.name}</Text>
+                            <Text style={styles.contactRole}>
+                                {person.role} · {person.company}
+                            </Text>
+                            <View style={styles.helpsWithRow}>
+                                <AppIcon name="sparkles-outline" size={14} color={T.primary} />
+                                <Text style={styles.helpsWithText}>Can help with: {person.helpsWith}</Text>
+                            </View>
+                        </View>
+                        <AppIcon name="chevron-forward" size={18} color={T.textMuted} />
                     </TouchableOpacity>
-                </View>
+                ))}
             </View>
-
-            {/* Weekly Summary Card */}
-            <View style={[styles.card, styles.summaryCard]}>
-                <Text style={styles.summaryTitle}>🎯 Weekly Wins</Text>
-                <View style={styles.summaryBullets}>
-                    <Text style={styles.summaryBullet}>• Completed 5 evening check-ins</Text>
-                    <Text style={styles.summaryBullet}>• Made progress on AI4All application</Text>
-                    <Text style={styles.summaryBullet}>• Maintained positive mood all week</Text>
-                </View>
-            </View>
-
-            {/* Reflections CTA */}
-            <TouchableOpacity style={styles.ctaCard}>
-                <View style={styles.ctaContent}>
-                    <Text style={styles.ctaEmoji}>📝</Text>
-                    <View style={{ flex: 1 }}>
-                        <Text style={styles.ctaTitle}>View Past Reflections</Text>
-                        <Text style={styles.ctaSubtitle}>23 entries this month</Text>
-                    </View>
-                    <Text style={styles.ctaArrow}>→</Text>
-                </View>
-            </TouchableOpacity>
         </ScrollView>
     );
 }
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: T.bg },
-    header: { padding: 24, paddingTop: 60 },
-    heading: { fontSize: 28, fontWeight: "300", color: T.text, marginBottom: 4 },
-    subheading: { fontSize: 14, color: T.textSecondary },
+    header: { paddingHorizontal: 24, paddingTop: 60, paddingBottom: 20, backgroundColor: T.bgDeep },
+    heading: { fontSize: 28, fontFamily: T.fontDisplay, color: T.text, marginBottom: 4 },
+    subheading: { fontSize: 14, fontFamily: T.font, color: T.textSecondary },
     card: {
         marginHorizontal: 24,
         marginBottom: 16,
         backgroundColor: T.bgCard,
         borderRadius: T.radiusSm,
         padding: 18,
-        shadowColor: "#000",
+        shadowColor: T.shadowColor,
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.04,
-        shadowRadius: 10,
+        shadowOpacity: T.shadowOpacity,
+        shadowRadius: T.shadowRadius,
         elevation: 2,
+    },
+    sectionLabel: {
+        fontSize: 11,
+        fontFamily: T.fontSemiBold,
+        color: T.textMuted,
+        letterSpacing: 1.2,
+        textTransform: "uppercase",
+        marginBottom: 10,
     },
     cardHeader: {
         flexDirection: "row",
@@ -176,17 +183,18 @@ const styles = StyleSheet.create({
         alignItems: "center",
         marginBottom: 14,
     },
-    cardTitle: { fontSize: 16, fontWeight: "600", color: T.text },
-    cardSubtitle: { fontSize: 11, color: T.textMuted },
-    cardAction: { fontSize: 13, color: T.primary, fontWeight: "500" },
+    cardTitle: { fontSize: 16, fontFamily: T.fontSemiBold, color: T.text },
+    cardSubtitle: { fontSize: 11, fontFamily: T.font, color: T.textMuted },
+    cardAction: { fontSize: 13, fontFamily: T.fontMedium, color: T.primary },
     moodChart: {
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "flex-end",
-        height: 80,
+        height: 100,
         marginBottom: 16,
     },
     moodBar: { alignItems: "center", flex: 1 },
+    moodIcon: { marginBottom: 4 },
     moodBarTrack: {
         width: 24,
         height: 60,
@@ -197,17 +205,11 @@ const styles = StyleSheet.create({
     },
     moodBarFill: {
         width: "100%",
-        backgroundColor: T.primary,
         borderRadius: 12,
-    },
-    moodBarHigh: {
-        backgroundColor: T.success,
-    },
-    moodBarLow: {
-        backgroundColor: T.warning,
     },
     moodBarLabel: {
         fontSize: 11,
+        fontFamily: T.font,
         color: T.textMuted,
         marginTop: 6,
     },
@@ -219,16 +221,21 @@ const styles = StyleSheet.create({
         borderTopColor: T.border,
     },
     moodSummaryItem: { flexDirection: "row", alignItems: "center", gap: 6 },
-    moodSummaryValue: { fontSize: 16 },
-    moodSummaryLabel: { fontSize: 12, color: T.textSecondary },
+    moodSummaryLabel: { fontSize: 12, fontFamily: T.font, color: T.textSecondary },
     goalRow: { marginBottom: 14 },
     goalInfo: {
         flexDirection: "row",
         justifyContent: "space-between",
+        alignItems: "center",
         marginBottom: 6,
     },
-    goalLabel: { fontSize: 14, color: T.text },
-    goalPercent: { fontSize: 13, color: T.primary, fontWeight: "600" },
+    goalLabelRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+    },
+    goalLabel: { fontSize: 14, fontFamily: T.font, color: T.text },
+    goalPercent: { fontSize: 13, fontFamily: T.fontSemiBold },
     goalBarTrack: {
         height: 6,
         backgroundColor: T.surface,
@@ -237,62 +244,43 @@ const styles = StyleSheet.create({
     },
     goalBarFill: {
         height: "100%",
-        backgroundColor: T.primary,
         borderRadius: 3,
     },
-    networkSubtext: {
-        fontSize: 13,
-        color: T.textSecondary,
-        marginBottom: 14,
-    },
-    networkList: {
+    contactCard: {
         flexDirection: "row",
+        alignItems: "center",
         gap: 12,
-    },
-    networkItem: { alignItems: "center", gap: 4 },
-    networkAvatar: {
-        width: 52,
-        height: 52,
-        borderRadius: 26,
-        backgroundColor: T.surface,
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    networkName: { fontSize: 12, color: T.textSecondary },
-    networkAdd: {
-        width: 52,
-        height: 52,
-        borderRadius: 26,
-        borderWidth: 2,
-        borderColor: T.border,
-        borderStyle: "dashed",
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    networkAddIcon: { fontSize: 22, color: T.textMuted },
-    summaryCard: {
-        backgroundColor: T.successSoft,
-        borderWidth: 1,
-        borderColor: `${T.success}20`,
-    },
-    summaryTitle: { fontSize: 15, fontWeight: "600", color: T.success, marginBottom: 10 },
-    summaryBullets: { gap: 4 },
-    summaryBullet: { fontSize: 14, color: T.text, lineHeight: 22 },
-    ctaCard: {
-        marginHorizontal: 24,
-        marginTop: 8,
-        backgroundColor: T.surface,
-        borderRadius: T.radiusSm,
         padding: 14,
-        paddingHorizontal: 18,
+        backgroundColor: T.bgCard,
+        borderRadius: T.radiusSm,
+        marginBottom: 10,
+        shadowColor: T.shadowColor,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: T.shadowOpacity,
+        shadowRadius: T.shadowRadius,
+        elevation: 2,
     },
-    ctaContent: {
+    contactAvatar: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: T.primarySoft,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    contactInitial: {
+        fontSize: 18,
+        fontFamily: T.fontSemiBold,
+        color: T.primary,
+    },
+    contactInfo: { flex: 1 },
+    contactName: { fontSize: 15, fontFamily: T.fontMedium, color: T.text },
+    contactRole: { fontSize: 12, fontFamily: T.font, color: T.textSecondary, marginTop: 1 },
+    helpsWithRow: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 14,
+        gap: 4,
+        marginTop: 4,
     },
-    ctaEmoji: { fontSize: 24 },
-    ctaTitle: { fontSize: 15, fontWeight: "500", color: T.text },
-    ctaSubtitle: { fontSize: 12, color: T.textMuted },
-    ctaArrow: { fontSize: 20, color: T.textMuted },
+    helpsWithText: { fontSize: 11, fontFamily: T.font, color: T.primary },
 });

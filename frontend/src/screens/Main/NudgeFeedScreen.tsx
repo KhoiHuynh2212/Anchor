@@ -3,7 +3,7 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
+  Pressable,
   StyleSheet,
   FlatList,
   ActivityIndicator,
@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { T } from "../../theme";
 import api from "../../services/api";
+import AppIcon from "../../components/AppIcon";
 
 type Nudge = {
   _id: string;
@@ -23,13 +24,13 @@ type Nudge = {
   scheduled_for: string;
 };
 
-const EMOJI_MAP: Record<string, string> = {
-  target: "\uD83C\uDFAF",
-  book: "\uD83D\uDCDA",
-  message: "\uD83D\uDCAC",
-  goal_check_in: "\uD83C\uDFAF",
-  deadline_reminder: "\u23F0",
-  reflection_prompt: "\uD83D\uDCAD",
+const ICON_MAP: Record<string, React.ComponentProps<typeof AppIcon>["name"]> = {
+  target: "flag",
+  book: "book",
+  message: "chatbubble",
+  goal_check_in: "flag",
+  deadline_reminder: "alarm",
+  reflection_prompt: "chatbubble-ellipses",
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -129,19 +130,21 @@ export default function NudgeFeedScreen() {
           </View>
 
           {/* Card */}
-          <TouchableOpacity
+          <Pressable
             style={[
               styles.nudgeCard,
               isPending && styles.nudgeCardPending,
+              isExpanded && { borderColor: `${color}30`, borderWidth: 1.5 },
             ]}
             onPress={() => setExpandedId(isExpanded ? null : item._id)}
-            activeOpacity={0.7}
           >
             <View style={styles.nudgeHeader}>
               <View style={styles.nudgeTypeRow}>
-                <Text style={{ fontSize: 18 }}>
-                  {EMOJI_MAP[item.emoji] || EMOJI_MAP[item.type] || "\u2728"}
-                </Text>
+                <AppIcon
+                  name={ICON_MAP[item.emoji] || ICON_MAP[item.type] || "sparkles"}
+                  size={18}
+                  color={color}
+                />
                 <Text style={[styles.nudgeType, { color }]}>
                   {TYPE_LABELS[item.type] || item.type}
                 </Text>
@@ -150,31 +153,39 @@ export default function NudgeFeedScreen() {
             </View>
 
             <Text style={styles.nudgeTitle}>{item.title}</Text>
-            <Text style={styles.nudgeBody}>{item.body}</Text>
+            {isExpanded ? (
+              <Text style={styles.nudgeBody}>{item.body}</Text>
+            ) : null}
 
             {/* Actions */}
-            <View style={styles.actionRow}>
-              {isResponded ? (
-                <View style={styles.doneBadge}>
-                  <Text style={styles.doneText}>{"\u2713"} Done</Text>
-                </View>
-              ) : (
-                <>
-                  <TouchableOpacity
-                    style={[styles.actionButton, { backgroundColor: color + "15" }]}
-                    onPress={() => setExpandedId(item._id)}
-                  >
-                    <Text style={[styles.actionButtonText, { color }]}>Take action</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.snoozeButton}
-                    onPress={() => handleSnooze(item._id)}
-                  >
-                    <Text style={styles.snoozeText}>Snooze</Text>
-                  </TouchableOpacity>
-                </>
-              )}
-            </View>
+            {isExpanded ? (
+              <View style={styles.actionRow}>
+                {isResponded ? (
+                  <View style={styles.doneBadge}>
+                    <View style={styles.doneRow}>
+                      <AppIcon name="checkmark" size={14} color={T.success} />
+                      <Text style={styles.doneText}>Completed</Text>
+                    </View>
+                  </View>
+                ) : (
+                  <>
+                    <Pressable
+                      style={[styles.actionButton, { backgroundColor: `${color}12` }]}
+                      onPress={() => setExpandedId(item._id)}
+                    >
+                      <Text style={[styles.actionButtonText, { color }]}>On it!</Text>
+                    </Pressable>
+                    <Pressable style={styles.snoozeButton} onPress={() => handleSnooze(item._id)}>
+                      <Text style={styles.snoozeText}>Snooze</Text>
+                    </Pressable>
+                  </>
+                )}
+              </View>
+            ) : (
+              <View style={styles.collapsedHintRow}>
+                <Text style={styles.collapsedHint}>Tap to expand</Text>
+              </View>
+            )}
 
             {/* Expanded response input */}
             {isExpanded && !isResponded && (
@@ -187,7 +198,7 @@ export default function NudgeFeedScreen() {
                   onChangeText={setResponseText}
                   onSubmitEditing={() => handleRespond(item._id)}
                 />
-                <TouchableOpacity
+                <Pressable
                   style={styles.responseSend}
                   onPress={() => handleRespond(item._id)}
                   disabled={responding}
@@ -195,12 +206,12 @@ export default function NudgeFeedScreen() {
                   {responding ? (
                     <ActivityIndicator size="small" color="#fff" />
                   ) : (
-                    <Text style={{ color: "#fff", fontWeight: "700" }}>{"\u2191"}</Text>
+                    <AppIcon name="arrow-up" size={18} color="#fff" />
                   )}
-                </TouchableOpacity>
+                </Pressable>
               </View>
             )}
-          </TouchableOpacity>
+          </Pressable>
         </View>
       );
     },
@@ -218,13 +229,25 @@ export default function NudgeFeedScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.headerSection}>
-        <Text style={styles.heading}>Your nudges</Text>
-        <Text style={styles.subheading}>Personalized check-ins throughout your day</Text>
+        <View style={styles.headerTopRow}>
+          <View>
+            <Text style={styles.heading}>Nudges</Text>
+            <Text style={styles.subheading}>{nudges.length} check-ins today</Text>
+          </View>
+          <View style={styles.filterRow}>
+            <View style={[styles.filterChip, styles.filterChipActive]}>
+              <Text style={[styles.filterChipText, styles.filterChipTextActive]}>All</Text>
+            </View>
+            <View style={styles.filterChip}>
+              <Text style={styles.filterChipText}>Active</Text>
+            </View>
+          </View>
+        </View>
       </View>
 
       {nudges.length === 0 ? (
         <View style={styles.emptyState}>
-          <Text style={{ fontSize: 48, marginBottom: 16 }}>{"\uD83D\uDD14"}</Text>
+          <AppIcon name="notifications-outline" size={48} color={T.textMuted} />
           <Text style={styles.emptyText}>No nudges yet</Text>
           <Text style={styles.emptySubtext}>
             Anchor will send you personalized check-ins as you use the app.
@@ -235,7 +258,7 @@ export default function NudgeFeedScreen() {
           data={nudges}
           renderItem={renderNudge}
           keyExtractor={(item) => item._id}
-          contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 100 }}
+          contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 130 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -261,12 +284,25 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  headerSection: { paddingHorizontal: 24, paddingTop: 60, paddingBottom: 20 },
-  heading: { fontSize: 28, fontWeight: "300", color: T.text, marginBottom: 4 },
-  subheading: { fontSize: 14, color: T.textSecondary },
+  headerSection: { paddingHorizontal: 24, paddingTop: 60, paddingBottom: 12 },
+  headerTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", gap: 10 },
+  heading: { fontSize: 28, fontFamily: T.fontDisplay, color: T.text, marginBottom: 4 },
+  subheading: { fontSize: 14, fontFamily: T.font, color: T.textSecondary },
+  filterRow: { flexDirection: "row", gap: 6, alignItems: "center" },
+  filterChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 50,
+    backgroundColor: T.bgCard,
+    borderWidth: 1.5,
+    borderColor: T.borderLight,
+  },
+  filterChipActive: { backgroundColor: `${T.primary}10`, borderColor: T.primary },
+  filterChipText: { fontFamily: T.fontSemiBold, fontSize: 12, color: T.textMuted },
+  filterChipTextActive: { color: T.primary },
   emptyState: { flex: 1, justifyContent: "center", alignItems: "center", padding: 32 },
-  emptyText: { fontSize: 18, fontWeight: "600", color: T.text, marginBottom: 8 },
-  emptySubtext: { fontSize: 14, color: T.textSecondary, textAlign: "center" },
+  emptyText: { fontSize: 18, fontFamily: T.fontSemiBold, color: T.text, marginBottom: 8 },
+  emptySubtext: { fontSize: 14, fontFamily: T.font, color: T.textSecondary, textAlign: "center" },
   nudgeRow: { flexDirection: "row", gap: 16, marginBottom: 20 },
   timelineColumn: { alignItems: "center", paddingTop: 2, width: 12 },
   dot: { width: 12, height: 12, borderRadius: 6 },
@@ -276,10 +312,10 @@ const styles = StyleSheet.create({
     backgroundColor: T.bgCard,
     borderRadius: T.radiusSm,
     padding: 18,
-    shadowColor: "#000",
+    shadowColor: T.shadowColor,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 10,
+    shadowOpacity: T.shadowOpacity,
+    shadowRadius: T.shadowRadius,
     elevation: 2,
   },
   nudgeCardPending: {
@@ -296,27 +332,27 @@ const styles = StyleSheet.create({
   nudgeTypeRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   nudgeType: {
     fontSize: 11,
-    fontWeight: "600",
+    fontFamily: T.fontSemiBold,
     textTransform: "uppercase",
     letterSpacing: 0.8,
   },
-  nudgeTime: { fontSize: 12, color: T.textMuted },
-  nudgeTitle: { fontSize: 16, fontWeight: "600", color: T.text, marginBottom: 6 },
-  nudgeBody: { fontSize: 14, color: T.textSecondary, lineHeight: 21, marginBottom: 14 },
+  nudgeTime: { fontSize: 12, fontFamily: T.font, color: T.textMuted },
+  nudgeTitle: { fontSize: 16, fontFamily: T.fontSemiBold, color: T.text, marginBottom: 6 },
+  nudgeBody: { fontSize: 14, fontFamily: T.font, color: T.textSecondary, lineHeight: 21, marginBottom: 14 },
   actionRow: { flexDirection: "row", gap: 8 },
   actionButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 50,
   },
-  actionButtonText: { fontSize: 13, fontWeight: "600" },
+  actionButtonText: { fontSize: 13, fontFamily: T.fontSemiBold },
   snoozeButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 50,
     backgroundColor: T.surface,
   },
-  snoozeText: { fontSize: 13, fontWeight: "500", color: T.textMuted },
+  snoozeText: { fontSize: 13, fontFamily: T.fontMedium, color: T.textMuted },
   doneBadge: {
     flexDirection: "row",
     alignItems: "center",
@@ -326,7 +362,10 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     backgroundColor: T.successSoft,
   },
-  doneText: { fontSize: 13, fontWeight: "500", color: T.success },
+  doneRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  doneText: { fontSize: 13, fontFamily: T.fontMedium, color: T.success },
+  collapsedHintRow: { marginTop: 10 },
+  collapsedHint: { fontFamily: T.font, fontSize: 12, color: T.textMuted },
   responseRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -340,6 +379,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     fontSize: 14,
+    fontFamily: T.font,
     color: T.text,
   },
   responseSend: {
