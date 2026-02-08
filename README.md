@@ -11,7 +11,12 @@ The system functions as an empathetic listener:
     Analysis: Using Google Gemini 2.0, it categorizes the "struggle type" (e.g., burnout, loneliness, or exam anxiety) and determines the appropriate psychological tone.
 
     Intervention: It delivers immediate relief via ElevenLabs' specialized "soft-voice" synthesis, providing grounding exercises and comforting dialogue to de-escalate stress in real-time.
-
+    
+## Prerequisites
+* **Node.js:** v18.0.0+
+* **MongoDB:** Local instance or Atlas URI.
+* **ElevenLabs API Key:** Obtain from ElevenLabs.
+* **Google AI Studio API Key:** Obtain from Google AI Studio.
 
 ## Features
     Gemini 2.0 Logic: High-context reasoning to analyze complex student "struggle" scenarios.
@@ -41,25 +46,29 @@ The system utilizes a modern JavaScript stack for end-to-end performance:
    # Clone the repository
     git clone https://github.com/KhoiHuynh2212/Anchor.git
     cd anchor/backend 
-    # Install dependencies
+   # Install dependencies
     npm install
-2. Frontend Setup
-  cd ../frontend
-  npm install
-  npx expo start
+   
+2.# Navigate to frontend
+    cd ../frontend
+# Install dependencies
+npm install
+# Start Expo
+npx expo start
+
 
 ## Roadmap: Model Training
 
 We are developing a local classification model to:
 
-    Pre-process inputs: Categorize the severity of the situation (Low/Medium/High risk).
+- Pre-process inputs: Categorize the severity of the situation (Low/Medium/High risk).
 
-    Adaptive Voices: Automatically switch between different ElevenLabs "Soft Voices" based on the detected emotion (e.g., using a "mellow" voice for anxiety vs. a "warm" voice for sadness).
+- Adaptive Voices: Automatically switch between different ElevenLabs "Soft Voices" based on the detected emotion (e.g., using a "mellow" voice for anxiety vs. a "warm" voice for sadness).
 
 # Team members 
-Khoi 
-Youssef 
-Asma 
-Robert
+- Khoi 
+- Youssef 
+- Asma 
+- Robert
 
 
