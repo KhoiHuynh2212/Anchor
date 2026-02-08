@@ -43,18 +43,12 @@ The system utilizes a modern JavaScript stack for end-to-end performance:
 
 ### Installation
 1. Backend Setup:
-   # Clone the repository
-    git clone https://github.com/KhoiHuynh2212/Anchor.git
-    cd anchor/backend 
-   # Install dependencies
-    npm install
+-git clone https://github.com/KhoiHuynh2212/Anchor.git
+-npm install
    
-2.# Navigate to frontend
-    cd ../frontend
-# Install dependencies
-npm install
-# Start Expo
-npx expo start
+2.Frontend setup
+-npm install
+-npx expo start
 
 
 ## Roadmap: Model Training
