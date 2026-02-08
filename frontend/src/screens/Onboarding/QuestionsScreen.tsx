@@ -121,7 +121,7 @@ export default function QuestionsScreen({ navigation }: any) {
         {step === 2 && (
           <View>
             <Text style={styles.heading}>How do you like to{"\n"}be motivated?</Text>
-            <Text style={styles.subheading}>This helps Sage tailor its tone to what works best for you.</Text>
+            <Text style={styles.subheading}>This helps Anchor tailor its tone to what works best for you.</Text>
             {MOTIVATION_OPTIONS.map((opt) => (
               <TouchableOpacity
                 key={opt.id}

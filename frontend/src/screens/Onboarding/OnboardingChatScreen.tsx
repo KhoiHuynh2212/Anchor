@@ -27,7 +27,7 @@ export default function OnboardingChatScreen() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
-  // Let Sage initiate the conversation on mount
+  // Let Anchor initiate the conversation on mount
   useEffect(() => {
     startConversation();
   }, []);
@@ -46,7 +46,7 @@ export default function OnboardingChatScreen() {
     } catch {
       const errMsg: Message = {
         role: "assistant",
-        content: "Hey there! I'm Sage. Tell me a bit about yourself and your goals!",
+        content: "Hey there! I'm Anchor. Tell me a bit about yourself and your goals!",
       };
       setMessages([errMsg]);
     } finally {
@@ -121,7 +121,7 @@ export default function OnboardingChatScreen() {
           <Text style={{ fontSize: 20 }}>{"\uD83C\uDF3F"}</Text>
         </View>
         <View>
-          <Text style={styles.headerTitle}>Sage</Text>
+          <Text style={styles.headerTitle}>Anchor</Text>
           <Text style={styles.headerSubtitle}>Getting to know you...</Text>
         </View>
       </View>

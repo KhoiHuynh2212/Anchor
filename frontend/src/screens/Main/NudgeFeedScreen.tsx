@@ -227,7 +227,7 @@ export default function NudgeFeedScreen() {
           <Text style={{ fontSize: 48, marginBottom: 16 }}>{"\uD83D\uDD14"}</Text>
           <Text style={styles.emptyText}>No nudges yet</Text>
           <Text style={styles.emptySubtext}>
-            Sage will send you personalized check-ins as you use the app.
+            Anchor will send you personalized check-ins as you use the app.
           </Text>
         </View>
       ) : (

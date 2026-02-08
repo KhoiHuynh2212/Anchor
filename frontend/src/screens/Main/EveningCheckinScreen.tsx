@@ -203,7 +203,7 @@ export default function EveningCheckinScreen() {
         <Text style={{ fontSize: 48, marginBottom: 24 }}>{"\uD83C\uDF19"}</Text>
         <Text style={styles.startTitle}>Evening Reflection</Text>
         <Text style={styles.startSubtitle}>
-          Take a few minutes to check in with yourself. Sage will guide you through a reflective conversation.
+          Take a few minutes to check in with yourself. Anchor will guide you through a reflective conversation.
         </Text>
         <TouchableOpacity style={styles.startButton} onPress={startCheckin}>
           <Text style={styles.startButtonText}>Begin Check-in</Text>

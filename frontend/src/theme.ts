@@ -22,4 +22,11 @@ export const T = {
   radius: 20,
   radiusSm: 14,
   radiusXl: 28,
+  // Shadows (for React Native, use shadowColor/shadowOffset/shadowOpacity/shadowRadius)
+  shadowColor: "#0077B6",
+  shadowOpacity: 0.06,
+  shadowRadius: 10,
+  // Gradients (for LinearGradient)
+  gradientPrimary: ["#0077B6", "#00B4D8"] as const,
+  gradientDark: ["#0D2137", "#070F1A"] as const,
 };
