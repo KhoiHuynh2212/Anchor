@@ -13,6 +13,7 @@ import {
 import { T } from "../../theme";
 import api from "../../services/api";
 import AppIcon from "../../components/AppIcon";
+import { useResponsive } from "../../hooks/useResponsive";
 
 type Nudge = {
   _id: string;
@@ -46,6 +47,9 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 export default function NudgeFeedScreen() {
+  const { s, fs, vs, horizontalPadding, isTablet } = useResponsive();
+  const styles = makeStyles(s, fs, vs);
+
   const [nudges, setNudges] = useState<Nudge[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -123,7 +127,7 @@ export default function NudgeFeedScreen() {
                   borderWidth: isPending ? 2 : 0,
                   borderColor: isPending ? T.textMuted : "transparent",
                 },
-                !isPending && { shadowColor: color, shadowOpacity: 0.3, shadowRadius: 4, elevation: 2 },
+                !isPending && { shadowColor: color, shadowOpacity: 0.3, shadowRadius: s(4), elevation: 2 },
               ]}
             />
             {index < nudges.length - 1 && <View style={styles.timelineLine} />}
@@ -142,7 +146,7 @@ export default function NudgeFeedScreen() {
               <View style={styles.nudgeTypeRow}>
                 <AppIcon
                   name={ICON_MAP[item.emoji] || ICON_MAP[item.type] || "sparkles"}
-                  size={18}
+                  size={s(18)}
                   color={color}
                 />
                 <Text style={[styles.nudgeType, { color }]}>
@@ -163,7 +167,7 @@ export default function NudgeFeedScreen() {
                 {isResponded ? (
                   <View style={styles.doneBadge}>
                     <View style={styles.doneRow}>
-                      <AppIcon name="checkmark" size={14} color={T.success} />
+                      <AppIcon name="checkmark" size={s(14)} color={T.success} />
                       <Text style={styles.doneText}>Completed</Text>
                     </View>
                   </View>
@@ -206,7 +210,7 @@ export default function NudgeFeedScreen() {
                   {responding ? (
                     <ActivityIndicator size="small" color="#fff" />
                   ) : (
-                    <AppIcon name="arrow-up" size={18} color="#fff" />
+                    <AppIcon name="arrow-up" size={s(18)} color="#fff" />
                   )}
                 </Pressable>
               </View>
@@ -215,7 +219,7 @@ export default function NudgeFeedScreen() {
         </View>
       );
     },
-    [expandedId, responseText, nudges.length, responding]
+    [expandedId, responseText, nudges.length, responding, styles, s]
   );
 
   if (loading) {
@@ -247,7 +251,7 @@ export default function NudgeFeedScreen() {
 
       {nudges.length === 0 ? (
         <View style={styles.emptyState}>
-          <AppIcon name="notifications-outline" size={48} color={T.textMuted} />
+          <AppIcon name="notifications-outline" size={s(48)} color={T.textMuted} />
           <Text style={styles.emptyText}>No nudges yet</Text>
           <Text style={styles.emptySubtext}>
             Anchor will send you personalized check-ins as you use the app.
@@ -258,7 +262,7 @@ export default function NudgeFeedScreen() {
           data={nudges}
           renderItem={renderNudge}
           keyExtractor={(item) => item._id}
-          contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 130 }}
+          contentContainerStyle={{ paddingHorizontal: s(24), paddingBottom: s(130) }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -276,7 +280,7 @@ export default function NudgeFeedScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (s: (n: number) => number, fs: (n: number) => number, vs: (n: number) => number) => StyleSheet.create({
   container: { flex: 1, backgroundColor: T.bg },
   loadingContainer: {
     flex: 1,
@@ -284,36 +288,36 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  headerSection: { paddingHorizontal: 24, paddingTop: 60, paddingBottom: 12 },
-  headerTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", gap: 10 },
-  heading: { fontSize: 28, fontFamily: T.fontDisplay, color: T.text, marginBottom: 4 },
-  subheading: { fontSize: 14, fontFamily: T.font, color: T.textSecondary },
-  filterRow: { flexDirection: "row", gap: 6, alignItems: "center" },
+  headerSection: { paddingHorizontal: s(24), paddingTop: vs(60), paddingBottom: s(12) },
+  headerTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", gap: s(10) },
+  heading: { fontSize: fs(28), fontFamily: T.fontDisplay, color: T.text, marginBottom: s(4) },
+  subheading: { fontSize: fs(14), fontFamily: T.font, color: T.textSecondary },
+  filterRow: { flexDirection: "row", gap: s(6), alignItems: "center" },
   filterChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 50,
+    paddingHorizontal: s(14),
+    paddingVertical: s(6),
+    borderRadius: s(50),
     backgroundColor: T.bgCard,
     borderWidth: 1.5,
     borderColor: T.borderLight,
   },
   filterChipActive: { backgroundColor: `${T.primary}10`, borderColor: T.primary },
-  filterChipText: { fontFamily: T.fontSemiBold, fontSize: 12, color: T.textMuted },
+  filterChipText: { fontFamily: T.fontSemiBold, fontSize: fs(12), color: T.textMuted },
   filterChipTextActive: { color: T.primary },
-  emptyState: { flex: 1, justifyContent: "center", alignItems: "center", padding: 32 },
-  emptyText: { fontSize: 18, fontFamily: T.fontSemiBold, color: T.text, marginBottom: 8 },
-  emptySubtext: { fontSize: 14, fontFamily: T.font, color: T.textSecondary, textAlign: "center" },
-  nudgeRow: { flexDirection: "row", gap: 16, marginBottom: 20 },
-  timelineColumn: { alignItems: "center", paddingTop: 2, width: 12 },
-  dot: { width: 12, height: 12, borderRadius: 6 },
-  timelineLine: { width: 2, flex: 1, backgroundColor: T.border, marginTop: 4 },
+  emptyState: { flex: 1, justifyContent: "center", alignItems: "center", padding: s(32) },
+  emptyText: { fontSize: fs(18), fontFamily: T.fontSemiBold, color: T.text, marginBottom: s(8) },
+  emptySubtext: { fontSize: fs(14), fontFamily: T.font, color: T.textSecondary, textAlign: "center" },
+  nudgeRow: { flexDirection: "row", gap: s(16), marginBottom: s(20) },
+  timelineColumn: { alignItems: "center", paddingTop: s(2), width: s(12) },
+  dot: { width: s(12), height: s(12), borderRadius: s(6) },
+  timelineLine: { width: s(2), flex: 1, backgroundColor: T.border, marginTop: s(4) },
   nudgeCard: {
     flex: 1,
     backgroundColor: T.bgCard,
     borderRadius: T.radiusSm,
-    padding: 18,
+    padding: s(18),
     shadowColor: T.shadowColor,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: s(2) },
     shadowOpacity: T.shadowOpacity,
     shadowRadius: T.shadowRadius,
     elevation: 2,
@@ -327,65 +331,65 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: s(10),
   },
-  nudgeTypeRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  nudgeTypeRow: { flexDirection: "row", alignItems: "center", gap: s(6) },
   nudgeType: {
-    fontSize: 11,
+    fontSize: fs(11),
     fontFamily: T.fontSemiBold,
     textTransform: "uppercase",
     letterSpacing: 0.8,
   },
-  nudgeTime: { fontSize: 12, fontFamily: T.font, color: T.textMuted },
-  nudgeTitle: { fontSize: 16, fontFamily: T.fontSemiBold, color: T.text, marginBottom: 6 },
-  nudgeBody: { fontSize: 14, fontFamily: T.font, color: T.textSecondary, lineHeight: 21, marginBottom: 14 },
-  actionRow: { flexDirection: "row", gap: 8 },
+  nudgeTime: { fontSize: fs(12), fontFamily: T.font, color: T.textMuted },
+  nudgeTitle: { fontSize: fs(16), fontFamily: T.fontSemiBold, color: T.text, marginBottom: s(6) },
+  nudgeBody: { fontSize: fs(14), fontFamily: T.font, color: T.textSecondary, lineHeight: fs(21), marginBottom: s(14) },
+  actionRow: { flexDirection: "row", gap: s(8) },
   actionButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 50,
+    paddingHorizontal: s(16),
+    paddingVertical: s(8),
+    borderRadius: s(50),
   },
-  actionButtonText: { fontSize: 13, fontFamily: T.fontSemiBold },
+  actionButtonText: { fontSize: fs(13), fontFamily: T.fontSemiBold },
   snoozeButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 50,
+    paddingHorizontal: s(16),
+    paddingVertical: s(8),
+    borderRadius: s(50),
     backgroundColor: T.surface,
   },
-  snoozeText: { fontSize: 13, fontFamily: T.fontMedium, color: T.textMuted },
+  snoozeText: { fontSize: fs(13), fontFamily: T.fontMedium, color: T.textMuted },
   doneBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 50,
+    gap: s(6),
+    paddingHorizontal: s(14),
+    paddingVertical: s(8),
+    borderRadius: s(50),
     backgroundColor: T.successSoft,
   },
-  doneRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  doneText: { fontSize: 13, fontFamily: T.fontMedium, color: T.success },
-  collapsedHintRow: { marginTop: 10 },
-  collapsedHint: { fontFamily: T.font, fontSize: 12, color: T.textMuted },
+  doneRow: { flexDirection: "row", alignItems: "center", gap: s(6) },
+  doneText: { fontSize: fs(13), fontFamily: T.fontMedium, color: T.success },
+  collapsedHintRow: { marginTop: s(10) },
+  collapsedHint: { fontFamily: T.font, fontSize: fs(12), color: T.textMuted },
   responseRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    marginTop: 12,
+    gap: s(8),
+    marginTop: s(12),
   },
   responseInput: {
     flex: 1,
     backgroundColor: T.surface,
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 14,
+    borderRadius: s(20),
+    paddingHorizontal: s(14),
+    paddingVertical: s(10),
+    fontSize: fs(14),
     fontFamily: T.font,
     color: T.text,
   },
   responseSend: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: s(36),
+    height: s(36),
+    borderRadius: s(18),
     backgroundColor: T.primary,
     alignItems: "center",
     justifyContent: "center",

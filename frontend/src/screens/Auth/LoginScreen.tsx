@@ -11,9 +11,12 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useAuth } from "../../context/AuthContext";
+import { useResponsive } from "../../hooks/useResponsive";
 
 export default function LoginScreen({ navigation }: any) {
   const { signIn } = useAuth();
+  const { s, fs, vs, horizontalPadding, isTablet } = useResponsive();
+  const styles = makeStyles(s, fs, vs);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -38,7 +41,7 @@ export default function LoginScreen({ navigation }: any) {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <View style={styles.inner}>
+      <View style={[styles.inner, isTablet && { paddingHorizontal: horizontalPadding }]}>
         <Text style={styles.title}>Sage</Text>
         <Text style={styles.subtitle}>Your AI accountability companion</Text>
 
@@ -83,7 +86,7 @@ export default function LoginScreen({ navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (s: (n: number) => number, fs: (n: number) => number, vs: (n: number) => number) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#E6F2FA",
@@ -91,49 +94,49 @@ const styles = StyleSheet.create({
   inner: {
     flex: 1,
     justifyContent: "center",
-    paddingHorizontal: 32,
+    paddingHorizontal: s(32),
   },
   title: {
-    fontSize: 48,
+    fontSize: fs(48),
     fontWeight: "700",
     color: "#0077B6",
     textAlign: "center",
-    marginBottom: 8,
+    marginBottom: s(8),
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: fs(16),
     color: "#4A6A82",
     textAlign: "center",
-    marginBottom: 48,
+    marginBottom: vs(48),
   },
   input: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 14,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    fontSize: 16,
+    borderRadius: s(14),
+    paddingHorizontal: s(20),
+    paddingVertical: s(16),
+    fontSize: fs(16),
     color: "#0A1628",
-    marginBottom: 16,
+    marginBottom: s(16),
     borderWidth: 1,
     borderColor: "#C8E2F2",
   },
   button: {
     backgroundColor: "#0077B6",
-    borderRadius: 14,
-    paddingVertical: 16,
+    borderRadius: s(14),
+    paddingVertical: s(16),
     alignItems: "center",
-    marginTop: 8,
-    marginBottom: 24,
+    marginTop: s(8),
+    marginBottom: s(24),
   },
   buttonText: {
     color: "#FFFFFF",
-    fontSize: 18,
+    fontSize: fs(18),
     fontWeight: "600",
   },
   linkText: {
     textAlign: "center",
     color: "#4A6A82",
-    fontSize: 14,
+    fontSize: fs(14),
   },
   link: {
     color: "#0077B6",

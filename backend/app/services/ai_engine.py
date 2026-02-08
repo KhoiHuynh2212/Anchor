@@ -113,11 +113,15 @@ async def _call_gemini(prompt: str, temperature: float = 0.8, max_tokens: int = 
     global _gemini_disabled_until
 
     if not settings.gemini_api_key:
+        print("[Gemini] WARNING: No API key configured — returning empty response")
         return ""
 
     if time.time() < _gemini_disabled_until:
+        remaining = int(_gemini_disabled_until - time.time())
+        print(f"[Gemini] Rate-limit cooldown active — {remaining}s remaining, returning empty")
         return ""
 
+    print(f"[Gemini] Calling model={settings.gemini_model}, prompt length={len(prompt)}")
     try:
         response = await asyncio.to_thread(
             client.models.generate_content,
@@ -128,9 +132,10 @@ async def _call_gemini(prompt: str, temperature: float = 0.8, max_tokens: int = 
                 max_output_tokens=max_tokens,
             ),
         )
+        print(f"[Gemini] Success — response length={len(response.text)}")
         return response.text
     except Exception as e:
-        print(f"Gemini API error: {e}")
+        print(f"[Gemini] API error: {type(e).__name__}: {e}")
         if _is_quota_or_rate_limit_error(e):
             # Avoid hammering the API when we're rate-limited / out of quota.
             _gemini_disabled_until = time.time() + 90

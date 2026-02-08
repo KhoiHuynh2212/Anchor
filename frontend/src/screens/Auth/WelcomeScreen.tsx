@@ -9,8 +9,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { T } from "../../theme";
 import AppIcon from "../../components/AppIcon";
+import { useResponsive } from "../../hooks/useResponsive";
 
 export default function WelcomeScreen({ navigation }: any) {
+    const { s, fs, vs, horizontalPadding, isTablet } = useResponsive();
+    const styles = makeStyles(s, fs, vs);
+
     return (
         <LinearGradient
             colors={[T.bg, T.bgDeep, T.primarySoft]}
@@ -23,7 +27,7 @@ export default function WelcomeScreen({ navigation }: any) {
                 <View style={styles.circleTopRight} />
                 <View style={styles.circleBottomLeft} />
 
-                <View style={styles.content}>
+                <View style={[styles.content, isTablet && { paddingHorizontal: horizontalPadding }]}>
                     {/* Logo */}
                     <View style={styles.logoContainer}>
                         <LinearGradient
@@ -32,7 +36,7 @@ export default function WelcomeScreen({ navigation }: any) {
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 1 }}
                         >
-                            <AppIcon name="anchor" size={42} color="#fff" />
+                            <AppIcon name="anchor" size={s(42)} color="#fff" />
                         </LinearGradient>
 
                         <Text style={styles.title}>Anchor</Text>
@@ -74,109 +78,109 @@ export default function WelcomeScreen({ navigation }: any) {
     );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (s: (n: number) => number, fs: (n: number) => number, vs: (n: number) => number) => StyleSheet.create({
     container: {
         flex: 1,
     },
     circleTopRight: {
         position: "absolute",
-        top: -60,
-        right: -60,
-        width: 200,
-        height: 200,
-        borderRadius: 100,
+        top: s(-60),
+        right: s(-60),
+        width: s(200),
+        height: s(200),
+        borderRadius: s(100),
         backgroundColor: `${T.primaryLight}15`,
     },
     circleBottomLeft: {
         position: "absolute",
-        bottom: -40,
-        left: -40,
-        width: 160,
-        height: 160,
-        borderRadius: 80,
+        bottom: s(-40),
+        left: s(-40),
+        width: s(160),
+        height: s(160),
+        borderRadius: s(80),
         backgroundColor: `${T.accent}10`,
     },
     content: {
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
-        paddingHorizontal: 32,
+        paddingHorizontal: s(32),
     },
     logoContainer: {
         alignItems: "center",
-        marginBottom: 48,
+        marginBottom: vs(48),
     },
     logoMark: {
-        width: 88,
-        height: 88,
-        borderRadius: 28,
+        width: s(88),
+        height: s(88),
+        borderRadius: s(28),
         alignItems: "center",
         justifyContent: "center",
-        marginBottom: 32,
+        marginBottom: vs(32),
         shadowColor: T.primary,
-        shadowOffset: { width: 0, height: 12 },
+        shadowOffset: { width: 0, height: s(12) },
         shadowOpacity: 0.3,
-        shadowRadius: 20,
+        shadowRadius: s(20),
         elevation: 10,
     },
     title: {
-        fontSize: 42,
+        fontSize: fs(42),
         fontFamily: T.fontDisplay,
         color: T.text,
-        marginBottom: 12,
+        marginBottom: s(12),
     },
     subtitle: {
-        fontSize: 16,
+        fontSize: fs(16),
         fontFamily: T.font,
         color: T.textSecondary,
         textAlign: "center",
-        lineHeight: 24,
-        maxWidth: 260,
+        lineHeight: fs(24),
+        maxWidth: s(260),
     },
     buttonContainer: {
         width: "100%",
-        maxWidth: 280,
+        maxWidth: s(280),
     },
     primaryButton: {
         width: "100%",
-        paddingVertical: 18,
-        paddingHorizontal: 32,
-        borderRadius: 60,
+        paddingVertical: s(18),
+        paddingHorizontal: s(32),
+        borderRadius: s(60),
         alignItems: "center",
-        marginBottom: 16,
+        marginBottom: s(16),
         shadowColor: T.primary,
-        shadowOffset: { width: 0, height: 8 },
+        shadowOffset: { width: 0, height: s(8) },
         shadowOpacity: 0.3,
-        shadowRadius: 16,
+        shadowRadius: s(16),
         elevation: 8,
     },
     primaryButtonText: {
         color: "#FFFFFF",
-        fontSize: 16,
+        fontSize: fs(16),
         fontFamily: T.fontSemiBold,
         letterSpacing: 0.3,
     },
     secondaryButton: {
         width: "100%",
-        paddingVertical: 14,
-        paddingHorizontal: 32,
+        paddingVertical: s(14),
+        paddingHorizontal: s(32),
         backgroundColor: "transparent",
-        borderRadius: 60,
+        borderRadius: s(60),
         borderWidth: 1.5,
         borderColor: T.primarySoft,
         alignItems: "center",
     },
     secondaryButtonText: {
         color: T.primary,
-        fontSize: 15,
+        fontSize: fs(15),
         fontFamily: T.fontMedium,
     },
     termsText: {
-        fontSize: 12,
+        fontSize: fs(12),
         fontFamily: T.font,
         color: T.textMuted,
-        marginTop: 32,
-        lineHeight: 18,
+        marginTop: vs(32),
+        lineHeight: fs(18),
         textAlign: "center",
     },
 });

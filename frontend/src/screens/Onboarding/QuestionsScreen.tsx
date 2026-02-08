@@ -17,6 +17,7 @@ import api from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigation, NavigationProp } from "@react-navigation/native";
 import AppIcon from "../../components/AppIcon";
+import { useResponsive } from "../../hooks/useResponsive";
 
 const MOTIVATION_OPTIONS = [
   {
@@ -66,140 +67,12 @@ const to24Hour = (hour: number, minute: number, period: "AM" | "PM") => {
   return `${hh}:${mm}`;
 };
 
-function ProgressBar({ step, total }: { step: number; total: number }) {
-  return (
-    <View style={styles.progressRow}>
-      {Array.from({ length: total }).map((_, i) => {
-        if (i < step) {
-          return (
-            <LinearGradient
-              key={i}
-              colors={[T.primary, T.accent]}
-              style={styles.progressBar}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            />
-          );
-        }
-
-        return (
-          <View
-            key={i}
-            style={[styles.progressBar, i === step ? styles.progressCurrent : styles.progressInactive]}
-          />
-        );
-      })}
-    </View>
-  );
-}
-
-function BackButton({ onPress }: { onPress: () => void }) {
-  return (
-    <Pressable onPress={onPress} style={styles.backButton}>
-      <Text style={styles.backIcon}>‹</Text>
-    </Pressable>
-  );
-}
-
-function ContinueButton({
-  onPress,
-  disabled,
-  label = "Continue",
-  icon,
-}: {
-  onPress: () => void;
-  disabled?: boolean;
-  label?: string;
-  icon?: React.ReactNode;
-}) {
-  return (
-    <Pressable onPress={onPress} disabled={disabled} style={{ width: "100%" }}>
-      <LinearGradient
-        colors={disabled ? [T.borderLight, T.borderLight] : [T.primary, T.accent]}
-        style={[styles.continueButton, disabled && styles.continueButtonDisabled]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <Text style={[styles.continueText, disabled && styles.continueTextDisabled]}>{label}</Text>
-        {icon ? <View style={{ marginLeft: 8 }}>{icon}</View> : null}
-      </LinearGradient>
-    </Pressable>
-  );
-}
-
-function SkipLink({ onPress, label = "Skip for now" }: { onPress: () => void; label?: string }) {
-  return (
-    <Pressable onPress={onPress}>
-      <Text style={styles.skipLink}>{label}</Text>
-    </Pressable>
-  );
-}
-
-function ScreenHeader({
-  step,
-  total,
-  onBack,
-  title,
-  subtitle,
-}: {
-  step: number;
-  total: number;
-  onBack?: () => void;
-  title: React.ReactNode;
-  subtitle?: string;
-}) {
-  return (
-    <View style={{ marginBottom: 24 }}>
-      <View style={styles.headerRow}>
-        {onBack ? <BackButton onPress={onBack} /> : <View style={{ width: 28 }} />}
-      </View>
-      <ProgressBar step={step} total={total} />
-      <View style={{ marginTop: 24 }}>
-        <Text style={styles.screenTitle}>{title}</Text>
-        {subtitle ? <Text style={styles.screenSubtitle}>{subtitle}</Text> : null}
-      </View>
-    </View>
-  );
-}
-
-function TimeWheel({
-  values,
-  value,
-  onChange,
-}: {
-  values: Array<number | string>;
-  value: number | string;
-  onChange: (next: any) => void;
-}) {
-  const index = values.indexOf(value);
-  const prev = values[(index - 1 + values.length) % values.length];
-  const next = values[(index + 1) % values.length];
-
-  return (
-    <View style={styles.timeWheel}>
-      <Pressable onPress={() => onChange(prev)} style={styles.timeWheelArrow}>
-        <Text style={styles.timeWheelArrowText}>˄</Text>
-      </Pressable>
-      <Text style={styles.timeWheelFaded}>{typeof prev === "number" ? String(prev).padStart(2, "0") : prev}</Text>
-      <View style={styles.timeWheelCurrent}>
-        <Text style={styles.timeWheelCurrentText}>
-          {typeof value === "number" ? String(value).padStart(2, "0") : value}
-        </Text>
-      </View>
-      <Text style={styles.timeWheelFaded}>{typeof next === "number" ? String(next).padStart(2, "0") : next}</Text>
-      <Pressable onPress={() => onChange(next)} style={styles.timeWheelArrow}>
-        <Text style={styles.timeWheelArrowText}>˅</Text>
-      </Pressable>
-    </View>
-  );
-}
-
 export default function QuestionsScreen() {
   const { refreshProfile, userProfile } = useAuth();
   const navigation = useNavigation<NavigationProp<any>>();
-  // This screen is only reachable after auth (AppNavigator gates it on `session`),
-  // so starting at the splash/create-account screens would feel like "duplicate onboarding".
-  // Begin at the first real onboarding step instead.
+  const { s, fs, vs, horizontalPadding, isTablet, isLandscape } = useResponsive();
+  const styles = makeStyles(s, fs, vs);
+
   const [screen, setScreen] = useState(2);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("alex@gmail.com");
@@ -294,28 +167,160 @@ export default function QuestionsScreen() {
     }
   };
 
+  function ProgressBar({ step, total }: { step: number; total: number }) {
+    return (
+      <View style={styles.progressRow}>
+        {Array.from({ length: total }).map((_, i) => {
+          if (i < step) {
+            return (
+              <LinearGradient
+                key={i}
+                colors={[T.primary, T.accent]}
+                style={styles.progressBar}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              />
+            );
+          }
+
+          return (
+            <View
+              key={i}
+              style={[styles.progressBar, i === step ? styles.progressCurrent : styles.progressInactive]}
+            />
+          );
+        })}
+      </View>
+    );
+  }
+
+  function BackButton({ onPress }: { onPress: () => void }) {
+    return (
+      <Pressable onPress={onPress} style={styles.backButton}>
+        <Text style={styles.backIcon}>‹</Text>
+      </Pressable>
+    );
+  }
+
+  function ContinueButton({
+    onPress,
+    disabled,
+    label = "Continue",
+    icon,
+  }: {
+    onPress: () => void;
+    disabled?: boolean;
+    label?: string;
+    icon?: React.ReactNode;
+  }) {
+    return (
+      <Pressable onPress={onPress} disabled={disabled} style={{ width: "100%" }}>
+        <LinearGradient
+          colors={disabled ? [T.borderLight, T.borderLight] : [T.primary, T.accent]}
+          style={[styles.continueButton, disabled && styles.continueButtonDisabled]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <Text style={[styles.continueText, disabled && styles.continueTextDisabled]}>{label}</Text>
+          {icon ? <View style={{ marginLeft: s(8) }}>{icon}</View> : null}
+        </LinearGradient>
+      </Pressable>
+    );
+  }
+
+  function SkipLink({ onPress, label = "Skip for now" }: { onPress: () => void; label?: string }) {
+    return (
+      <Pressable onPress={onPress}>
+        <Text style={styles.skipLink}>{label}</Text>
+      </Pressable>
+    );
+  }
+
+  function ScreenHeader({
+    step,
+    total,
+    onBack,
+    title,
+    subtitle,
+  }: {
+    step: number;
+    total: number;
+    onBack?: () => void;
+    title: React.ReactNode;
+    subtitle?: string;
+  }) {
+    return (
+      <View style={{ marginBottom: s(24) }}>
+        <View style={styles.headerRow}>
+          {onBack ? <BackButton onPress={onBack} /> : <View style={{ width: s(28) }} />}
+        </View>
+        <ProgressBar step={step} total={total} />
+        <View style={{ marginTop: s(24) }}>
+          <Text style={styles.screenTitle}>{title}</Text>
+          {subtitle ? <Text style={styles.screenSubtitle}>{subtitle}</Text> : null}
+        </View>
+      </View>
+    );
+  }
+
+  function TimeWheel({
+    values,
+    value,
+    onChange,
+  }: {
+    values: Array<number | string>;
+    value: number | string;
+    onChange: (next: any) => void;
+  }) {
+    const index = values.indexOf(value);
+    const prev = values[(index - 1 + values.length) % values.length];
+    const next = values[(index + 1) % values.length];
+
+    return (
+      <View style={styles.timeWheel}>
+        <Pressable onPress={() => onChange(prev)} style={styles.timeWheelArrow}>
+          <Text style={styles.timeWheelArrowText}>˄</Text>
+        </Pressable>
+        <Text style={styles.timeWheelFaded}>{typeof prev === "number" ? String(prev).padStart(2, "0") : prev}</Text>
+        <View style={styles.timeWheelCurrent}>
+          <Text style={styles.timeWheelCurrentText}>
+            {typeof value === "number" ? String(value).padStart(2, "0") : value}
+          </Text>
+        </View>
+        <Text style={styles.timeWheelFaded}>{typeof next === "number" ? String(next).padStart(2, "0") : next}</Text>
+        <Pressable onPress={() => onChange(next)} style={styles.timeWheelArrow}>
+          <Text style={styles.timeWheelArrowText}>˅</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       {screen === 0 && (
-        <View style={styles.splashContainer}>
+        <View style={[styles.splashContainer, isTablet && { paddingHorizontal: horizontalPadding }]}>
           <View style={styles.splashBlobOne} />
           <View style={styles.splashBlobTwo} />
           <View style={styles.splashBlobThree} />
 
           <View style={{ flex: 1 }} />
 
-          <View style={{ alignItems: "center" }}>
-            <View style={styles.splashLogo}>
-              <AppIcon name="leaf" size={44} color="#fff" />
+          <View style={[{ alignItems: "center" }, isLandscape && { flexDirection: "row", gap: s(32) }]}>
+            <View style={[isLandscape && { alignItems: "center" }]}>
+              <View style={styles.splashLogo}>
+                <AppIcon name="leaf" size={s(44)} color="#fff" />
+              </View>
             </View>
-            <Text style={styles.splashTitle}>Sage</Text>
-            <Text style={styles.splashSubtitle}>Your AI wellness companion</Text>
-            <Text style={styles.splashBody}>
-              Daily check-ins, mindful reflections, and gentle accountability to help you grow.
-            </Text>
+            <View style={[{ alignItems: "center" }, isLandscape && { flex: 1, alignItems: "flex-start" }]}>
+              <Text style={styles.splashTitle}>Sage</Text>
+              <Text style={styles.splashSubtitle}>Your AI wellness companion</Text>
+              <Text style={styles.splashBody}>
+                Daily check-ins, mindful reflections, and gentle accountability to help you grow.
+              </Text>
+            </View>
           </View>
 
-          <View style={{ width: "100%", marginTop: 28 }}>
+          <View style={{ width: "100%", marginTop: s(28) }}>
             <Pressable onPress={goNext} style={{ width: "100%" }}>
               <LinearGradient
                 colors={[T.primary, T.accent]}
@@ -338,7 +343,7 @@ export default function QuestionsScreen() {
       )}
 
       {screen === 1 && (
-        <ScrollView contentContainerStyle={styles.screenScroll} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={[styles.screenScroll, isTablet && { paddingHorizontal: horizontalPadding }]} keyboardShouldPersistTaps="handled">
           <ScreenHeader
             step={0}
             total={TOTAL_STEPS}
@@ -351,7 +356,7 @@ export default function QuestionsScreen() {
             subtitle="Let's get you set up. This only takes a minute."
           />
 
-          <View style={{ gap: 18 }}>
+          <View style={{ gap: s(18) }}>
             <View>
               <Text style={styles.fieldLabel}>Full Name</Text>
               <TextInput
@@ -383,7 +388,7 @@ export default function QuestionsScreen() {
               <Text style={styles.fieldLabel}>Password</Text>
               <View>
                 <TextInput
-                  style={[styles.input, focused === "password" && styles.inputFocused, { paddingRight: 50 }]}
+                  style={[styles.input, focused === "password" && styles.inputFocused, { paddingRight: s(50) }]}
                   placeholder="Min 8 characters"
                   placeholderTextColor={T.textMuted}
                   secureTextEntry={!showPassword}
@@ -393,7 +398,7 @@ export default function QuestionsScreen() {
                   onBlur={() => setFocused(null)}
                 />
                 <Pressable onPress={() => setShowPassword((prev) => !prev)} style={styles.passwordToggle}>
-                  <AppIcon name={showPassword ? "eye-off" : "eye"} size={18} color={T.textMuted} />
+                  <AppIcon name={showPassword ? "eye-off" : "eye"} size={s(18)} color={T.textMuted} />
                 </Pressable>
               </View>
               <View style={styles.passwordStrength}>
@@ -427,14 +432,14 @@ export default function QuestionsScreen() {
 
           <View style={{ flex: 1 }} />
 
-          <View style={{ paddingBottom: 16 }}>
+          <View style={{ paddingBottom: s(16) }}>
             <ContinueButton onPress={goNext} disabled={!canContinue()} />
           </View>
         </ScrollView>
       )}
 
       {screen === 2 && (
-        <View style={styles.screenContainer}>
+        <View style={[styles.screenContainer, isTablet && { paddingHorizontal: horizontalPadding }]}>
           <ScreenHeader
             step={0}
             total={TOTAL_STEPS}
@@ -452,7 +457,7 @@ export default function QuestionsScreen() {
               {nickname ? (
                 <Text style={styles.nicknameAvatarText}>{nickname.charAt(0).toUpperCase()}</Text>
               ) : (
-                <AppIcon name="person-circle-outline" size={32} color={T.textMuted} />
+                <AppIcon name="person-circle-outline" size={s(32)} color={T.textMuted} />
               )}
             </View>
 
@@ -480,14 +485,14 @@ export default function QuestionsScreen() {
             )}
           </View>
 
-          <View style={{ paddingBottom: 16 }}>
+          <View style={{ paddingBottom: s(16) }}>
             <ContinueButton onPress={goNext} disabled={!canContinue()} />
           </View>
         </View>
       )}
 
       {screen === 3 && (
-        <View style={styles.screenContainer}>
+        <View style={[styles.screenContainer, isTablet && { paddingHorizontal: horizontalPadding }]}>
           <ScreenHeader
             step={1}
             total={TOTAL_STEPS}
@@ -511,7 +516,7 @@ export default function QuestionsScreen() {
                 >
                   <AppIcon
                     name={preset.icon as React.ComponentProps<typeof AppIcon>["name"]}
-                    size={22}
+                    size={s(22)}
                     color={active ? T.primary : T.text}
                     style={styles.goalIcon}
                   />
@@ -519,7 +524,7 @@ export default function QuestionsScreen() {
                   {active && (
                     <AppIcon
                       name="checkmark"
-                      size={14}
+                      size={s(14)}
                       color="#fff"
                       style={styles.goalCheck}
                     />
@@ -544,21 +549,21 @@ export default function QuestionsScreen() {
                 </View>
               ) : (
                 <>
-                  <AppIcon name="add" size={20} color={T.textMuted} />
+                  <AppIcon name="add" size={s(20)} color={T.textMuted} />
                   <Text style={styles.customGoalLabel}>Add your own</Text>
                 </>
               )}
             </Pressable>
           </ScrollView>
 
-          <View style={{ paddingBottom: 16 }}>
+          <View style={{ paddingBottom: s(16) }}>
             <ContinueButton onPress={goNext} disabled={!canContinue()} />
           </View>
         </View>
       )}
 
       {screen === 4 && (
-        <View style={styles.screenContainer}>
+        <View style={[styles.screenContainer, isTablet && { paddingHorizontal: horizontalPadding }]}>
           <ScreenHeader
             step={2}
             total={TOTAL_STEPS}
@@ -571,7 +576,7 @@ export default function QuestionsScreen() {
             subtitle="This shapes how Sage checks in, nudges, and motivates you."
           />
 
-          <ScrollView contentContainerStyle={{ gap: 12, paddingBottom: 20 }}>
+          <ScrollView contentContainerStyle={{ gap: s(12), paddingBottom: s(20) }}>
             {MOTIVATION_OPTIONS.map((opt) => {
               const active = motivationStyle === opt.id;
               return (
@@ -583,7 +588,7 @@ export default function QuestionsScreen() {
                   <View style={[styles.motivationEmoji, active && styles.motivationEmojiActive]}>
                     <AppIcon
                       name={opt.icon as React.ComponentProps<typeof AppIcon>["name"]}
-                      size={24}
+                      size={s(24)}
                       color={active ? T.primary : T.textSecondary}
                     />
                   </View>
@@ -592,7 +597,7 @@ export default function QuestionsScreen() {
                     <Text style={styles.motivationDesc}>{opt.desc}</Text>
                   </View>
                   <View style={[styles.motivationRadio, active && styles.motivationRadioActive]}>
-                    {active ? <AppIcon name="checkmark" size={12} color="#fff" /> : null}
+                    {active ? <AppIcon name="checkmark" size={s(12)} color="#fff" /> : null}
                   </View>
                   {active ? (
                     <View style={styles.motivationPreview}>
@@ -605,14 +610,14 @@ export default function QuestionsScreen() {
             })}
           </ScrollView>
 
-          <View style={{ paddingBottom: 16 }}>
+          <View style={{ paddingBottom: s(16) }}>
             <ContinueButton onPress={goNext} disabled={!canContinue()} />
           </View>
         </View>
       )}
 
       {screen === 5 && (
-        <View style={styles.screenContainer}>
+        <View style={[styles.screenContainer, isTablet && { paddingHorizontal: horizontalPadding }]}>
           <ScreenHeader
             step={3}
             total={TOTAL_STEPS}
@@ -627,7 +632,7 @@ export default function QuestionsScreen() {
 
           <View style={styles.timeBody}>
             <View style={styles.sunIcon}>
-              <AppIcon name="sunny" size={34} color="#fff" />
+              <AppIcon name="sunny" size={s(34)} color="#fff" />
             </View>
             <View style={styles.timeRow}>
               <TimeWheel values={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]} value={wakeHour} onChange={setWakeHour} />
@@ -643,14 +648,14 @@ export default function QuestionsScreen() {
             </Text>
           </View>
 
-          <View style={{ paddingBottom: 16 }}>
+          <View style={{ paddingBottom: s(16) }}>
             <ContinueButton onPress={goNext} />
           </View>
         </View>
       )}
 
       {screen === 6 && (
-        <View style={styles.screenContainer}>
+        <View style={[styles.screenContainer, isTablet && { paddingHorizontal: horizontalPadding }]}>
           <ScreenHeader
             step={4}
             total={TOTAL_STEPS}
@@ -665,7 +670,7 @@ export default function QuestionsScreen() {
 
           <View style={styles.timeBody}>
             <View style={styles.moonIcon}>
-              <AppIcon name="moon" size={32} color="#fff" />
+              <AppIcon name="moon" size={s(32)} color="#fff" />
             </View>
             <View style={styles.timeRow}>
               <TimeWheel values={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]} value={bedHour} onChange={setBedHour} />
@@ -682,14 +687,14 @@ export default function QuestionsScreen() {
             </Text>
           </View>
 
-          <View style={{ paddingBottom: 16 }}>
+          <View style={{ paddingBottom: s(16) }}>
             <ContinueButton onPress={goNext} />
           </View>
         </View>
       )}
 
       {screen === 7 && (
-        <View style={styles.screenContainer}>
+        <View style={[styles.screenContainer, isTablet && { paddingHorizontal: horizontalPadding }]}>
           <ScreenHeader
             step={5}
             total={TOTAL_STEPS}
@@ -702,7 +707,7 @@ export default function QuestionsScreen() {
             subtitle="The more Sage knows, the smarter your nudges become."
           />
 
-          <View style={{ gap: 14 }}>
+          <View style={{ gap: s(14) }}>
             {[
               {
                 id: "google",
@@ -722,7 +727,7 @@ export default function QuestionsScreen() {
                     <View style={styles.integrationIcon}>
                       <AppIcon
                         name={integration.id === "google" ? "calendar" : "checkmark-circle"}
-                        size={20}
+                        size={s(20)}
                         color={T.primary}
                       />
                     </View>
@@ -744,14 +749,14 @@ export default function QuestionsScreen() {
             })}
 
             <View style={styles.infoCallout}>
-              <AppIcon name="information-circle" size={18} color={T.primary} />
+              <AppIcon name="information-circle" size={s(18)} color={T.primary} />
               <Text style={styles.infoText}>
                 Your data stays private. Sage only reads calendar events and task names — never your email content.
               </Text>
             </View>
           </View>
 
-          <View style={{ paddingBottom: 16, paddingTop: 16, alignItems: "center" }}>
+          <View style={{ paddingBottom: s(16), paddingTop: s(16), alignItems: "center" }}>
             <ContinueButton
               onPress={goNext}
               label={Object.keys(connected).length ? "Continue" : "Continue without connecting"}
@@ -762,16 +767,16 @@ export default function QuestionsScreen() {
       )}
 
       {screen === 8 && (
-        <View style={styles.allSetContainer}>
+        <View style={[styles.allSetContainer, isTablet && { paddingHorizontal: horizontalPadding }]}>
           <View style={styles.allSetBadge}>
-            <AppIcon name="checkmark" size={40} color="#fff" />
+            <AppIcon name="checkmark" size={s(40)} color="#fff" />
           </View>
           <Text style={styles.allSetTitle}>You're all set!</Text>
           <Text style={styles.allSetSubtitle}>
             Sage is ready to be your companion.{"\n"}Here's what to expect:
           </Text>
 
-          <View style={{ gap: 10, width: "100%", marginBottom: 30 }}>
+          <View style={{ gap: s(10), width: "100%", marginBottom: s(30) }}>
             {[
               {
                 icon: "sunny",
@@ -789,7 +794,7 @@ export default function QuestionsScreen() {
               },
             ].map((feature) => (
               <View key={feature.title} style={styles.featureCard}>
-                <AppIcon name={feature.icon} size={22} color={T.primary} style={styles.featureIcon} />
+                <AppIcon name={feature.icon} size={s(22)} color={T.primary} style={styles.featureIcon} />
                 <View>
                   <Text style={styles.featureTitle}>{feature.title}</Text>
                   <Text style={styles.featureDesc}>{feature.desc}</Text>
@@ -814,45 +819,45 @@ export default function QuestionsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (s: (n: number) => number, fs: (n: number) => number, vs: (n: number) => number) => StyleSheet.create({
   container: { flex: 1, backgroundColor: T.bg },
-  screenContainer: { flex: 1, paddingHorizontal: 24, paddingTop: 16 },
-  screenScroll: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 16 },
-  progressRow: { flexDirection: "row", gap: 6, paddingHorizontal: 4 },
-  progressBar: { flex: 1, height: 3.5, borderRadius: 4 },
+  screenContainer: { flex: 1, paddingHorizontal: s(24), paddingTop: s(16) },
+  screenScroll: { flexGrow: 1, paddingHorizontal: s(24), paddingTop: s(16) },
+  progressRow: { flexDirection: "row", gap: s(6), paddingHorizontal: s(4) },
+  progressBar: { flex: 1, height: s(3.5), borderRadius: s(4) },
   progressInactive: { backgroundColor: T.borderLight },
   progressCurrent: { backgroundColor: T.primarySoft },
-  headerRow: { height: 32, justifyContent: "center" },
-  backButton: { padding: 4, marginLeft: -4, width: 28, height: 28, justifyContent: "center", alignItems: "center" },
-  backIcon: { fontSize: 28, color: T.text },
+  headerRow: { height: s(32), justifyContent: "center" },
+  backButton: { padding: s(4), marginLeft: s(-4), width: s(28), height: s(28), justifyContent: "center", alignItems: "center" },
+  backIcon: { fontSize: fs(28), color: T.text },
   screenTitle: {
     fontFamily: T.fontDisplay,
-    fontSize: 30,
+    fontSize: fs(30),
     color: T.text,
-    marginBottom: 8,
+    marginBottom: s(8),
     fontWeight: "400",
-    lineHeight: 34,
+    lineHeight: fs(34),
   },
-  screenSubtitle: { fontFamily: T.font, fontSize: 15, color: T.textSecondary, lineHeight: 22 },
+  screenSubtitle: { fontFamily: T.font, fontSize: fs(15), color: T.textSecondary, lineHeight: fs(22) },
   emphasis: { fontStyle: "italic", color: T.primary },
   continueButton: {
     width: "100%",
-    paddingVertical: 17,
-    borderRadius: 56,
+    paddingVertical: s(17),
+    borderRadius: s(56),
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
   },
   continueButtonDisabled: { opacity: 0.7 },
-  continueText: { color: "#fff", fontFamily: T.fontSemiBold, fontSize: 16 },
+  continueText: { color: "#fff", fontFamily: T.fontSemiBold, fontSize: fs(16) },
   continueTextDisabled: { color: T.textMuted },
-  skipLink: { fontFamily: T.font, fontSize: 14, color: T.textMuted, paddingVertical: 12 },
+  skipLink: { fontFamily: T.font, fontSize: fs(14), color: T.textMuted, paddingVertical: s(12) },
   input: {
     backgroundColor: T.bgCard,
     borderRadius: T.radiusSm,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-    fontSize: 16,
+    paddingHorizontal: s(18),
+    paddingVertical: s(16),
+    fontSize: fs(16),
     fontFamily: T.font,
     color: T.text,
     borderWidth: 1.5,
@@ -862,163 +867,163 @@ const styles = StyleSheet.create({
     borderColor: T.primary,
     shadowColor: T.primary,
     shadowOpacity: 0.12,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: s(6),
+    shadowOffset: { width: 0, height: s(2) },
   },
   fieldLabel: {
     fontFamily: T.fontSemiBold,
-    fontSize: 13,
+    fontSize: fs(13),
     color: T.textSecondary,
-    marginBottom: 7,
+    marginBottom: s(7),
     letterSpacing: 0.2,
   },
-  passwordToggle: { position: "absolute", right: 14, top: 18 },
-  passwordStrength: { flexDirection: "row", gap: 4, marginTop: 10 },
-  passwordBar: { flex: 1, height: 3, borderRadius: 3 },
+  passwordToggle: { position: "absolute", right: s(14), top: s(18) },
+  passwordStrength: { flexDirection: "row", gap: s(4), marginTop: s(10) },
+  passwordBar: { flex: 1, height: s(3), borderRadius: s(3) },
   passwordWarn: { backgroundColor: T.warning },
   passwordStrong: { backgroundColor: T.success },
   passwordEmpty: { backgroundColor: T.borderLight },
-  passwordHint: { fontFamily: T.font, fontSize: 11, color: T.textMuted, marginTop: 6 },
-  dividerRow: { flexDirection: "row", alignItems: "center", gap: 16, marginVertical: 24 },
+  passwordHint: { fontFamily: T.font, fontSize: fs(11), color: T.textMuted, marginTop: s(6) },
+  dividerRow: { flexDirection: "row", alignItems: "center", gap: s(16), marginVertical: s(24) },
   dividerLine: { flex: 1, height: 1, backgroundColor: T.border },
-  dividerText: { fontFamily: T.font, fontSize: 12, color: T.textMuted, fontWeight: "500" },
+  dividerText: { fontFamily: T.font, fontSize: fs(12), color: T.textMuted, fontWeight: "500" },
   socialButton: {
-    paddingVertical: 15,
+    paddingVertical: s(15),
     borderRadius: T.radiusSm,
     borderWidth: 1.5,
     borderColor: T.border,
     alignItems: "center",
     backgroundColor: T.bgCard,
   },
-  socialText: { fontFamily: T.font, fontSize: 15, color: T.text, fontWeight: "500" },
-  nicknameBody: { flex: 1, alignItems: "center", justifyContent: "center", marginTop: -20 },
+  socialText: { fontFamily: T.font, fontSize: fs(15), color: T.text, fontWeight: "500" },
+  nicknameBody: { flex: 1, alignItems: "center", justifyContent: "center", marginTop: s(-20) },
   nicknameAvatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 24,
+    width: s(72),
+    height: s(72),
+    borderRadius: s(24),
     backgroundColor: T.primarySoft,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 20,
+    marginBottom: s(20),
   },
-  nicknameAvatarText: { fontSize: 32, color: "#fff", fontFamily: T.fontDisplay },
+  nicknameAvatarText: { fontSize: fs(32), color: "#fff", fontFamily: T.fontDisplay },
   nicknameInput: {
     width: "100%",
-    maxWidth: 260,
-    paddingVertical: 12,
+    maxWidth: s(260),
+    paddingVertical: s(12),
     borderBottomWidth: 2,
     borderBottomColor: T.border,
     fontFamily: T.fontDisplay,
-    fontSize: 28,
+    fontSize: fs(28),
     textAlign: "center",
     color: T.text,
   },
-  suggestionsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "center", marginTop: 18 },
-  suggestionsLabel: { fontFamily: T.font, fontSize: 13, color: T.textMuted },
+  suggestionsRow: { flexDirection: "row", flexWrap: "wrap", gap: s(8), justifyContent: "center", marginTop: s(18) },
+  suggestionsLabel: { fontFamily: T.font, fontSize: fs(13), color: T.textMuted },
   suggestionPill: {
-    paddingHorizontal: 18,
-    paddingVertical: 8,
-    borderRadius: 50,
+    paddingHorizontal: s(18),
+    paddingVertical: s(8),
+    borderRadius: s(50),
     backgroundColor: T.bgCard,
     borderWidth: 1.5,
     borderColor: T.border,
   },
-  suggestionPillText: { fontFamily: T.font, fontSize: 14, color: T.text, fontWeight: "500" },
-  nicknameHint: { fontFamily: T.font, fontSize: 15, color: T.textSecondary, marginTop: 10 },
+  suggestionPillText: { fontFamily: T.font, fontSize: fs(14), color: T.text, fontWeight: "500" },
+  nicknameHint: { fontFamily: T.font, fontSize: fs(15), color: T.textSecondary, marginTop: s(10) },
   nicknameEmphasis: { color: T.primary, fontWeight: "600" },
   goalGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 10,
-    paddingBottom: 16,
+    gap: s(10),
+    paddingBottom: s(16),
   },
   goalCard: {
     width: "48%",
-    padding: 16,
+    padding: s(16),
     borderRadius: T.radiusSm,
     borderWidth: 2,
     borderColor: T.borderLight,
     backgroundColor: T.bgCard,
-    gap: 8,
+    gap: s(8),
   },
   goalCardActive: { borderColor: T.primary, backgroundColor: `${T.primary}08` },
-  goalIcon: { marginBottom: 6 },
-  goalLabel: { fontFamily: T.font, fontSize: 13.5, color: T.text, fontWeight: "600" },
+  goalIcon: { marginBottom: s(6) },
+  goalLabel: { fontFamily: T.font, fontSize: fs(13.5), color: T.text, fontWeight: "600" },
   goalLabelActive: { color: T.primary },
   goalCheck: {
     position: "absolute",
-    right: 10,
-    top: 10,
+    right: s(10),
+    top: s(10),
     backgroundColor: T.primary,
-    borderRadius: 10,
-    padding: 3,
+    borderRadius: s(10),
+    padding: s(3),
   },
   customGoalCard: {
     width: "100%",
-    padding: 16,
+    padding: s(16),
     borderRadius: T.radiusSm,
     borderWidth: 2,
     borderColor: T.border,
     borderStyle: "dashed",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    gap: s(8),
     backgroundColor: T.surface,
   },
-  customGoalLabel: { fontFamily: T.font, fontSize: 13.5, color: T.textMuted, fontWeight: "500" },
-  customGoalInputRow: { flexDirection: "row", gap: 8, alignItems: "center", width: "100%" },
+  customGoalLabel: { fontFamily: T.font, fontSize: fs(13.5), color: T.textMuted, fontWeight: "500" },
+  customGoalInputRow: { flexDirection: "row", gap: s(8), alignItems: "center", width: "100%" },
   customGoalInput: {
     flex: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: s(12),
+    paddingVertical: s(10),
     borderRadius: T.radiusXs,
     borderWidth: 1.5,
     borderColor: T.primary,
     backgroundColor: "#fff",
     fontFamily: T.font,
-    fontSize: 14,
+    fontSize: fs(14),
   },
   customGoalAdd: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: s(16),
+    paddingVertical: s(10),
     borderRadius: T.radiusXs,
     backgroundColor: T.primary,
   },
-  customGoalAddText: { color: "#fff", fontFamily: T.fontSemiBold, fontSize: 13 },
+  customGoalAddText: { color: "#fff", fontFamily: T.fontSemiBold, fontSize: fs(13) },
   motivationCard: {
-    padding: 18,
+    padding: s(18),
     borderRadius: T.radius,
     borderWidth: 2,
     borderColor: T.borderLight,
     backgroundColor: T.bgCard,
-    gap: 12,
+    gap: s(12),
   },
   motivationCardActive: {
     borderColor: T.primary,
     shadowColor: T.shadowColor,
     shadowOpacity: T.shadowMdOpacity,
     shadowRadius: T.shadowMdRadius,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: s(4) },
   },
   motivationEmoji: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
+    width: s(48),
+    height: s(48),
+    borderRadius: s(16),
     backgroundColor: T.surface,
     alignItems: "center",
     justifyContent: "center",
   },
   motivationEmojiActive: { backgroundColor: `${T.primary}10` },
-  motivationTitle: { fontFamily: T.fontSemiBold, fontSize: 16, color: T.text },
+  motivationTitle: { fontFamily: T.fontSemiBold, fontSize: fs(16), color: T.text },
   motivationTitleActive: { color: T.primary },
-  motivationDesc: { fontFamily: T.font, fontSize: 13, color: T.textSecondary, marginTop: 2 },
+  motivationDesc: { fontFamily: T.font, fontSize: fs(13), color: T.textSecondary, marginTop: s(2) },
   motivationRadio: {
     position: "absolute",
-    right: 18,
-    top: 18,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    right: s(18),
+    top: s(18),
+    width: s(22),
+    height: s(22),
+    borderRadius: s(11),
     borderWidth: 2,
     borderColor: T.border,
     alignItems: "center",
@@ -1026,197 +1031,197 @@ const styles = StyleSheet.create({
   },
   motivationRadioActive: { borderColor: T.primary, backgroundColor: T.primary },
   motivationPreview: {
-    marginTop: 6,
-    padding: 12,
-    borderRadius: 14,
+    marginTop: s(6),
+    padding: s(12),
+    borderRadius: s(14),
     backgroundColor: `${T.primary}08`,
     borderWidth: 1,
     borderColor: `${T.primary}12`,
   },
   motivationPreviewLabel: {
     fontFamily: T.fontSemiBold,
-    fontSize: 11,
+    fontSize: fs(11),
     color: T.primary,
     textTransform: "uppercase",
     letterSpacing: 0.6,
-    marginBottom: 6,
+    marginBottom: s(6),
   },
-  motivationPreviewText: { fontFamily: T.font, fontSize: 13.5, color: T.textSecondary, fontStyle: "italic" },
-  timeBody: { flex: 1, alignItems: "center", justifyContent: "center", marginTop: -20 },
-  timeRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 16 },
-  timeSeparator: { fontFamily: T.fontDisplay, fontSize: 48, color: T.textMuted, marginBottom: 6 },
-  timeHint: { fontFamily: T.font, fontSize: 14, color: T.textSecondary, textAlign: "center" },
+  motivationPreviewText: { fontFamily: T.font, fontSize: fs(13.5), color: T.textSecondary, fontStyle: "italic" },
+  timeBody: { flex: 1, alignItems: "center", justifyContent: "center", marginTop: s(-20) },
+  timeRow: { flexDirection: "row", alignItems: "center", gap: s(6), marginBottom: s(16) },
+  timeSeparator: { fontFamily: T.fontDisplay, fontSize: fs(48), color: T.textMuted, marginBottom: s(6) },
+  timeHint: { fontFamily: T.font, fontSize: fs(14), color: T.textSecondary, textAlign: "center" },
   timeHighlight: { color: T.primary, fontWeight: "600" },
-  timeWheel: { alignItems: "center", gap: 2 },
-  timeWheelArrow: { padding: 6 },
-  timeWheelArrowText: { fontSize: 18, color: T.textMuted },
-  timeWheelFaded: { fontFamily: T.fontDisplay, fontSize: 24, color: T.textMuted, opacity: 0.4 },
-  timeWheelCurrent: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, backgroundColor: `${T.primary}08` },
-  timeWheelCurrentText: { fontFamily: T.fontDisplay, fontSize: 52, color: T.text },
+  timeWheel: { alignItems: "center", gap: s(2) },
+  timeWheelArrow: { padding: s(6) },
+  timeWheelArrowText: { fontSize: fs(18), color: T.textMuted },
+  timeWheelFaded: { fontFamily: T.fontDisplay, fontSize: fs(24), color: T.textMuted, opacity: 0.4 },
+  timeWheelCurrent: { paddingHorizontal: s(8), paddingVertical: s(4), borderRadius: s(12), backgroundColor: `${T.primary}08` },
+  timeWheelCurrentText: { fontFamily: T.fontDisplay, fontSize: fs(52), color: T.text },
   sunIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: s(80),
+    height: s(80),
+    borderRadius: s(40),
     backgroundColor: "#FFD166",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 30,
+    marginBottom: s(30),
   },
   moonIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: s(80),
+    height: s(80),
+    borderRadius: s(40),
     backgroundColor: "#3A0CA3",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 30,
+    marginBottom: s(30),
   },
   integrationCard: {
-    padding: 20,
+    padding: s(20),
     borderRadius: T.radius,
     borderWidth: 1.5,
     borderColor: T.borderLight,
     backgroundColor: T.bgCard,
   },
-  integrationHeader: { flexDirection: "row", gap: 16, marginBottom: 14, alignItems: "center" },
+  integrationHeader: { flexDirection: "row", gap: s(16), marginBottom: s(14), alignItems: "center" },
   integrationIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
+    width: s(52),
+    height: s(52),
+    borderRadius: s(16),
     backgroundColor: T.surface,
     alignItems: "center",
     justifyContent: "center",
   },
-  integrationTitle: { fontFamily: T.fontSemiBold, fontSize: 16, color: T.text },
-  integrationDesc: { fontFamily: T.font, fontSize: 13, color: T.textSecondary, marginTop: 2 },
+  integrationTitle: { fontFamily: T.fontSemiBold, fontSize: fs(16), color: T.text },
+  integrationDesc: { fontFamily: T.font, fontSize: fs(13), color: T.textSecondary, marginTop: s(2) },
   integrationButton: {
-    paddingVertical: 12,
-    borderRadius: 12,
+    paddingVertical: s(12),
+    borderRadius: s(12),
     alignItems: "center",
     borderWidth: 1.5,
     borderColor: T.primarySoft,
     backgroundColor: `${T.primary}08`,
   },
   integrationButtonActive: { backgroundColor: T.successSoft, borderColor: `${T.success}30` },
-  integrationButtonText: { fontFamily: T.fontSemiBold, fontSize: 14, color: T.primary },
+  integrationButtonText: { fontFamily: T.fontSemiBold, fontSize: fs(14), color: T.primary },
   integrationButtonTextActive: { color: T.success },
   infoCallout: {
     flexDirection: "row",
-    gap: 10,
-    padding: 14,
+    gap: s(10),
+    padding: s(14),
     borderRadius: T.radiusSm,
     backgroundColor: `${T.primary}06`,
     borderWidth: 1,
     borderColor: `${T.primary}10`,
   },
-  infoText: { fontFamily: T.font, fontSize: 13, color: T.textSecondary, lineHeight: 18, flex: 1 },
+  infoText: { fontFamily: T.font, fontSize: fs(13), color: T.textSecondary, lineHeight: fs(18), flex: 1 },
   allSetContainer: {
     flex: 1,
-    paddingHorizontal: 28,
-    paddingTop: 40,
+    paddingHorizontal: s(28),
+    paddingTop: vs(40),
     alignItems: "center",
     justifyContent: "center",
   },
   allSetBadge: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+    width: s(96),
+    height: s(96),
+    borderRadius: s(48),
     backgroundColor: T.primary,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 28,
+    marginBottom: s(28),
   },
-  allSetTitle: { fontFamily: T.fontDisplay, fontSize: 34, color: T.text, marginBottom: 8 },
-  allSetSubtitle: { fontFamily: T.font, fontSize: 16, color: T.textSecondary, textAlign: "center", marginBottom: 24 },
+  allSetTitle: { fontFamily: T.fontDisplay, fontSize: fs(34), color: T.text, marginBottom: s(8) },
+  allSetSubtitle: { fontFamily: T.font, fontSize: fs(16), color: T.textSecondary, textAlign: "center", marginBottom: s(24) },
   featureCard: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
-    padding: 14,
+    gap: s(14),
+    padding: s(14),
     borderRadius: T.radiusSm,
     backgroundColor: T.bgCard,
     width: "100%",
   },
-  featureIcon: { marginRight: 4 },
-  featureTitle: { fontFamily: T.fontSemiBold, fontSize: 15, color: T.text },
-  featureDesc: { fontFamily: T.font, fontSize: 13, color: T.textMuted },
+  featureIcon: { marginRight: s(4) },
+  featureTitle: { fontFamily: T.fontSemiBold, fontSize: fs(15), color: T.text },
+  featureDesc: { fontFamily: T.font, fontSize: fs(13), color: T.textMuted },
   allSetButton: {
-    paddingVertical: 18,
-    borderRadius: 56,
+    paddingVertical: s(18),
+    borderRadius: s(56),
     alignItems: "center",
     justifyContent: "center",
   },
-  allSetButtonText: { fontFamily: T.fontSemiBold, fontSize: 17, color: "#fff" },
+  allSetButtonText: { fontFamily: T.fontSemiBold, fontSize: fs(17), color: "#fff" },
   splashContainer: {
     flex: 1,
-    paddingHorizontal: 28,
-    paddingTop: 60,
-    paddingBottom: 40,
+    paddingHorizontal: s(28),
+    paddingTop: vs(60),
+    paddingBottom: vs(40),
     alignItems: "center",
     justifyContent: "space-between",
   },
   splashLogo: {
-    width: 96,
-    height: 96,
-    borderRadius: 32,
+    width: s(96),
+    height: s(96),
+    borderRadius: s(32),
     backgroundColor: T.primary,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 24,
+    marginBottom: s(24),
   },
-  splashTitle: { fontFamily: T.fontDisplay, fontSize: 48, color: T.text, marginBottom: 8 },
-  splashSubtitle: { fontFamily: T.font, fontSize: 17, color: T.textSecondary, marginBottom: 6 },
+  splashTitle: { fontFamily: T.fontDisplay, fontSize: fs(48), color: T.text, marginBottom: s(8) },
+  splashSubtitle: { fontFamily: T.font, fontSize: fs(17), color: T.textSecondary, marginBottom: s(6) },
   splashBody: {
     fontFamily: T.font,
-    fontSize: 14,
+    fontSize: fs(14),
     color: T.textMuted,
     textAlign: "center",
-    maxWidth: 280,
-    lineHeight: 20,
+    maxWidth: s(280),
+    lineHeight: fs(20),
   },
   splashPrimary: {
-    paddingVertical: 18,
-    borderRadius: 56,
+    paddingVertical: s(18),
+    borderRadius: s(56),
     alignItems: "center",
-    marginBottom: 14,
+    marginBottom: s(14),
   },
-  splashPrimaryText: { fontFamily: T.fontSemiBold, fontSize: 17, color: "#fff" },
+  splashPrimaryText: { fontFamily: T.fontSemiBold, fontSize: fs(17), color: "#fff" },
   splashSecondary: {
-    paddingVertical: 16,
-    borderRadius: 56,
+    paddingVertical: s(16),
+    borderRadius: s(56),
     borderWidth: 1.5,
     borderColor: T.primarySoft,
     alignItems: "center",
     backgroundColor: T.bgCard,
   },
-  splashSecondaryText: { fontFamily: T.fontSemiBold, fontSize: 16, color: T.primary },
-  splashFootnote: { fontFamily: T.font, fontSize: 12, color: T.textMuted, marginTop: 16, textAlign: "center" },
+  splashSecondaryText: { fontFamily: T.fontSemiBold, fontSize: fs(16), color: T.primary },
+  splashFootnote: { fontFamily: T.font, fontSize: fs(12), color: T.textMuted, marginTop: s(16), textAlign: "center" },
   splashLink: { color: T.primary, fontWeight: "600" },
   splashBlobOne: {
     position: "absolute",
-    top: -80,
-    right: -80,
-    width: 240,
-    height: 240,
-    borderRadius: 120,
+    top: s(-80),
+    right: s(-80),
+    width: s(240),
+    height: s(240),
+    borderRadius: s(120),
     backgroundColor: `${T.accent}08`,
   },
   splashBlobTwo: {
     position: "absolute",
-    bottom: 100,
-    left: -60,
-    width: 180,
-    height: 180,
-    borderRadius: 90,
+    bottom: s(100),
+    left: s(-60),
+    width: s(180),
+    height: s(180),
+    borderRadius: s(90),
     backgroundColor: `${T.primary}06`,
   },
   splashBlobThree: {
     position: "absolute",
-    top: 200,
-    right: -40,
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    top: s(200),
+    right: s(-40),
+    width: s(120),
+    height: s(120),
+    borderRadius: s(60),
     backgroundColor: `${T.accentLight}08`,
   },
 });

@@ -7,6 +7,7 @@ import { View, Text, Pressable, StyleSheet, Animated, Easing } from "react-nativ
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useResponsive } from "../hooks/useResponsive";
 
 // Auth screens
 import WelcomeScreen from "../screens/Auth/WelcomeScreen";
@@ -31,6 +32,7 @@ const Tab = createBottomTabNavigator();
 
 function SageTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const { s, fs, isTablet, contentWidth } = useResponsive();
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const focusedRoute = state.routes[state.index];
   const shouldHide = focusedRoute?.name === "Voice";
@@ -55,13 +57,21 @@ function SageTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
     ).start();
   }, []);
 
+  const tabStyles = makeTabStyles(s, fs);
+
   // The Voice screen has its own bottom controls (mic/end-call). Our custom
   // tab bar sits absolutely at the bottom and can intercept touches.
-  // Hide it on Voice to prevent “press does nothing” issues.
+  // Hide it on Voice to prevent "press does nothing" issues.
   if (shouldHide) return null;
 
   return (
-    <View style={[tabStyles.wrap, { paddingBottom: Math.max(18, insets.bottom + 10) }]}>
+    <View
+      style={[
+        tabStyles.wrap,
+        { paddingBottom: Math.max(s(18), insets.bottom + s(10)) },
+        isTablet && { maxWidth: contentWidth, alignSelf: 'center' as const },
+      ]}
+    >
       {state.routes.map((route, index) => {
         const { options } = descriptors[route.key];
         const label = (options.tabBarLabel ?? options.title ?? route.name) as string;
@@ -105,14 +115,14 @@ function SageTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                 >
-                  <Ionicons name="mic" size={24} color="#fff" />
+                  <Ionicons name="mic" size={s(24)} color="#fff" />
                 </LinearGradient>
               </Animated.View>
             ) : (
-              <View style={{ alignItems: "center", gap: 2 }}>
+              <View style={{ alignItems: "center", gap: s(2) }}>
                 <Ionicons
                   name={iconName}
-                  size={16}
+                  size={s(16)}
                   color={isFocused ? T.primary : "rgba(0,0,0,0.35)"}
                 />
                 <Text
@@ -160,12 +170,13 @@ function MainTabs() {
 
 export default function AppNavigator() {
   const { session, loading, profileLoading, userProfile } = useAuth();
+  const { s, fs } = useResponsive();
 
   if (loading || profileLoading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: T.bg }}>
-        <Text style={{ fontSize: 32, color: T.primary, fontWeight: "700" }}>Anchor</Text>
-        <Text style={{ fontSize: 14, color: T.textSecondary, marginTop: 8 }}>Loading...</Text>
+        <Text style={{ fontSize: fs(32), color: T.primary, fontWeight: "700" }}>Anchor</Text>
+        <Text style={{ fontSize: fs(14), color: T.textSecondary, marginTop: s(8) }}>Loading...</Text>
       </View>
     );
   }
@@ -194,7 +205,7 @@ export default function AppNavigator() {
   );
 }
 
-const tabStyles = StyleSheet.create({
+const makeTabStyles = (s: (n: number) => number, fs: (n: number) => number) => StyleSheet.create({
   wrap: {
     position: "absolute",
     left: 0,
@@ -203,21 +214,21 @@ const tabStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-end",
     justifyContent: "space-around",
-    paddingTop: 6,
-    paddingHorizontal: 4,
+    paddingTop: s(6),
+    paddingHorizontal: s(4),
     backgroundColor: "rgba(230,242,250,0.88)",
     borderTopWidth: 1,
     borderTopColor: T.borderLight,
   },
-  item: { flex: 1, alignItems: "center", justifyContent: "flex-end", paddingBottom: 6 },
-  centerItem: { transform: [{ translateY: -16 }] },
-  icon: { fontSize: 20, marginBottom: 3 },
-  label: { fontFamily: T.fontSemiBold, fontSize: 10, marginTop: 2 },
+  item: { flex: 1, alignItems: "center", justifyContent: "flex-end", paddingBottom: s(6) },
+  centerItem: { transform: [{ translateY: s(-16) }] },
+  icon: { fontSize: fs(20), marginBottom: s(3) },
+  label: { fontFamily: T.fontSemiBold, fontSize: fs(10), marginTop: s(2) },
   labelMinimal: {
-    fontSize: 9,
+    fontSize: fs(9),
     fontFamily: T.font,
     color: "rgba(0,0,0,0.4)",
-    marginTop: 2,
+    marginTop: s(2),
   },
   labelActive: {
     color: T.primary,
@@ -225,20 +236,20 @@ const tabStyles = StyleSheet.create({
   },
   labelInactive: { color: T.textMuted, fontWeight: "500" },
   centerButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: s(80),
+    height: s(80),
+    borderRadius: s(40),
     alignItems: "center",
     justifyContent: "center",
     shadowColor: T.primary,
     shadowOpacity: 0.35,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 12 },
+    shadowRadius: s(24),
+    shadowOffset: { width: 0, height: s(12) },
     elevation: 12,
   },
   centerButtonUnfocused: {
     shadowOpacity: 0.2,
-    transform: [{ translateY: -14 }],
+    transform: [{ translateY: s(-14) }],
   },
-  centerIcon: { fontSize: 22, color: "#fff" },
+  centerIcon: { fontSize: fs(22), color: "#fff" },
 });

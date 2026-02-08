@@ -15,6 +15,7 @@ import { T } from "../../theme";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api";
 import AppIcon from "../../components/AppIcon";
+import { useResponsive } from "../../hooks/useResponsive";
 
 const MOTIVATION_STYLES = [
   { value: "gentle", label: "Gentle", desc: "Soft, patient, nurturing" },
@@ -23,6 +24,9 @@ const MOTIVATION_STYLES = [
 ];
 
 export default function SettingsScreen() {
+  const { s, fs, vs, horizontalPadding, isTablet } = useResponsive();
+  const styles = makeStyles(s, fs, vs);
+
   const { userProfile, signOut, refreshProfile } = useAuth();
   const [nickname, setNickname] = useState("");
   const [motivationStyle, setMotivationStyle] = useState("balanced");
@@ -115,6 +119,73 @@ export default function SettingsScreen() {
     ]);
   };
 
+  function LinearGradientAvatar({ label }: { label: string }) {
+    return (
+      <LinearGradient
+        colors={[T.primary, T.accent]}
+        style={styles.avatarWrap}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <Text style={styles.avatarText}>{label}</Text>
+      </LinearGradient>
+    );
+  }
+
+  function LinearGradientButton({ children, disabled }: { children: React.ReactNode; disabled?: boolean }) {
+    return (
+      <LinearGradient
+        colors={disabled ? [T.borderLight, T.borderLight] : [T.primary, T.accent]}
+        style={styles.primaryButtonInner}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+      >
+        {children}
+      </LinearGradient>
+    );
+  }
+
+  function Section({ title, children }: { title: string; children: React.ReactNode }) {
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        <View style={styles.sectionCard}>{children}</View>
+      </View>
+    );
+  }
+
+  function Row({
+    label,
+    sublabel,
+    children,
+  }: {
+    label: string;
+    sublabel?: string;
+    children: React.ReactNode;
+  }) {
+    return (
+      <View style={styles.row}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.rowLabel}>{label}</Text>
+          {sublabel ? <Text style={styles.rowSublabel}>{sublabel}</Text> : null}
+        </View>
+        <View style={{ marginLeft: s(12) }}>{children}</View>
+      </View>
+    );
+  }
+
+  function Divider() {
+    return <View style={styles.divider} />;
+  }
+
+  function Toggle({ value, onChange }: { value: boolean; onChange: (next: boolean) => void }) {
+    return (
+      <Pressable onPress={() => onChange(!value)} style={[styles.toggle, value && styles.toggleOn]}>
+        <View style={[styles.toggleKnob, value && styles.toggleKnobOn]} />
+      </Pressable>
+    );
+  }
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -124,116 +195,124 @@ export default function SettingsScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 90 }}>
-      {/* Profile header */}
-      <View style={styles.profileHeader}>
-        <LinearGradientAvatar label={(nickname || userProfile?.email || "A").charAt(0).toUpperCase()} />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.profileName}>{nickname || "You"}</Text>
-          <Text style={styles.profileEmail}>{userProfile?.email || ""}</Text>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={[
+        { paddingBottom: s(90) },
+        isTablet && { alignItems: "center" }
+      ]}
+    >
+      <View style={isTablet && { width: "100%", maxWidth: s(600) }}>
+        {/* Profile header */}
+        <View style={styles.profileHeader}>
+          <LinearGradientAvatar label={(nickname || userProfile?.email || "A").charAt(0).toUpperCase()} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.profileName}>{nickname || "You"}</Text>
+            <Text style={styles.profileEmail}>{userProfile?.email || ""}</Text>
+          </View>
+          <View style={styles.editChip}>
+            <Text style={styles.editChipText}>Edit</Text>
+          </View>
         </View>
-        <View style={styles.editChip}>
-          <Text style={styles.editChipText}>Edit</Text>
-        </View>
+
+        {/* Preferences */}
+        <Section title="Preferences">
+          <Row label="Nickname" sublabel="What should Sage call you?">
+            <TextInput
+              style={styles.inlineInput}
+              value={nickname}
+              onChangeText={setNickname}
+              placeholder="Alex"
+              placeholderTextColor={T.textMuted}
+            />
+          </Row>
+          <Divider />
+          <Row label="Motivation style" sublabel={MOTIVATION_STYLES.find((style) => style.value === motivationStyle)?.desc || ""}>
+            <View style={styles.pillsRow}>
+              {MOTIVATION_STYLES.map((style) => {
+                const active = motivationStyle === style.value;
+                return (
+                  <Pressable
+                    key={style.value}
+                    onPress={() => setMotivationStyle(style.value)}
+                    style={[styles.pill, active && styles.pillActive]}
+                  >
+                    <Text style={[styles.pillText, active && styles.pillTextActive]}>{style.label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </Row>
+          <Divider />
+          <Row label="Wake time" sublabel="Morning brief time">
+            <TextInput
+              style={styles.timeInput}
+              value={wakeTime}
+              onChangeText={setWakeTime}
+              placeholder="07:30"
+              placeholderTextColor={T.textMuted}
+            />
+          </Row>
+          <Divider />
+          <Row label="Bed time" sublabel="Evening check-in prompt">
+            <TextInput
+              style={styles.timeInput}
+              value={bedTime}
+              onChangeText={setBedTime}
+              placeholder="23:00"
+              placeholderTextColor={T.textMuted}
+            />
+          </Row>
+        </Section>
+
+        {/* Notifications */}
+        <Section title="Notifications">
+          <Row label="Push notifications" sublabel="Morning brief, nudges, and reminders">
+            <Toggle value={pushEnabled} onChange={setPushEnabled} />
+          </Row>
+          <Divider />
+          <Row label="AI voice responses" sublabel="ElevenLabs voice in sessions">
+            <Toggle value={voiceEnabled} onChange={setVoiceEnabled} />
+          </Row>
+        </Section>
+
+        {/* Integrations */}
+        <Section title="Integrations">
+          <Pressable style={styles.integrationRow} onPress={handleGoogleConnect}>
+            <View style={styles.integrationIcon}>
+              <AppIcon name="logo-google" size={s(16)} color={T.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.integrationName}>Google</Text>
+              <Text style={styles.integrationDesc}>Calendar & Gmail</Text>
+            </View>
+            <Text style={styles.integrationAction}>Connect</Text>
+          </Pressable>
+          <Divider />
+          <Pressable style={styles.integrationRow} onPress={handleTodoistConnect}>
+            <View style={styles.integrationIcon}>
+              <AppIcon name="checkmark-circle" size={s(16)} color={T.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.integrationName}>Todoist</Text>
+              <Text style={styles.integrationDesc}>Tasks & deadlines</Text>
+            </View>
+            <Text style={styles.integrationAction}>Connect</Text>
+          </Pressable>
+        </Section>
+
+        {/* Save */}
+        <Pressable style={styles.primaryButton} onPress={saveProfile} disabled={saving}>
+          <LinearGradientButton disabled={saving}>
+            {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.primaryButtonText}>Save changes</Text>}
+          </LinearGradientButton>
+        </Pressable>
+
+        {/* Sign out */}
+        <Pressable style={styles.signOutButton} onPress={handleSignOut}>
+          <Text style={styles.signOutText}>Sign out</Text>
+        </Pressable>
       </View>
-
-      {/* Preferences */}
-      <Section title="Preferences">
-        <Row label="Nickname" sublabel="What should Sage call you?">
-          <TextInput
-            style={styles.inlineInput}
-            value={nickname}
-            onChangeText={setNickname}
-            placeholder="Alex"
-            placeholderTextColor={T.textMuted}
-          />
-        </Row>
-        <Divider />
-        <Row label="Motivation style" sublabel={MOTIVATION_STYLES.find((s) => s.value === motivationStyle)?.desc || ""}>
-          <View style={styles.pillsRow}>
-            {MOTIVATION_STYLES.map((s) => {
-              const active = motivationStyle === s.value;
-              return (
-                <Pressable
-                  key={s.value}
-                  onPress={() => setMotivationStyle(s.value)}
-                  style={[styles.pill, active && styles.pillActive]}
-                >
-                  <Text style={[styles.pillText, active && styles.pillTextActive]}>{s.label}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </Row>
-        <Divider />
-        <Row label="Wake time" sublabel="Morning brief time">
-          <TextInput
-            style={styles.timeInput}
-            value={wakeTime}
-            onChangeText={setWakeTime}
-            placeholder="07:30"
-            placeholderTextColor={T.textMuted}
-          />
-        </Row>
-        <Divider />
-        <Row label="Bed time" sublabel="Evening check-in prompt">
-          <TextInput
-            style={styles.timeInput}
-            value={bedTime}
-            onChangeText={setBedTime}
-            placeholder="23:00"
-            placeholderTextColor={T.textMuted}
-          />
-        </Row>
-      </Section>
-
-      {/* Notifications */}
-      <Section title="Notifications">
-        <Row label="Push notifications" sublabel="Morning brief, nudges, and reminders">
-          <Toggle value={pushEnabled} onChange={setPushEnabled} />
-        </Row>
-        <Divider />
-        <Row label="AI voice responses" sublabel="ElevenLabs voice in sessions">
-          <Toggle value={voiceEnabled} onChange={setVoiceEnabled} />
-        </Row>
-      </Section>
-
-      {/* Integrations */}
-      <Section title="Integrations">
-        <Pressable style={styles.integrationRow} onPress={handleGoogleConnect}>
-          <View style={styles.integrationIcon}>
-            <AppIcon name="logo-google" size={16} color={T.primary} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.integrationName}>Google</Text>
-            <Text style={styles.integrationDesc}>Calendar & Gmail</Text>
-          </View>
-          <Text style={styles.integrationAction}>Connect</Text>
-        </Pressable>
-        <Divider />
-        <Pressable style={styles.integrationRow} onPress={handleTodoistConnect}>
-          <View style={styles.integrationIcon}>
-            <AppIcon name="checkmark-circle" size={16} color={T.primary} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.integrationName}>Todoist</Text>
-            <Text style={styles.integrationDesc}>Tasks & deadlines</Text>
-          </View>
-          <Text style={styles.integrationAction}>Connect</Text>
-        </Pressable>
-      </Section>
-
-      {/* Save */}
-      <Pressable style={styles.primaryButton} onPress={saveProfile} disabled={saving}>
-        <LinearGradientButton disabled={saving}>
-          {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.primaryButtonText}>Save changes</Text>}
-        </LinearGradientButton>
-      </Pressable>
-
-      {/* Sign out */}
-      <Pressable style={styles.signOutButton} onPress={handleSignOut}>
-        <Text style={styles.signOutText}>Sign out</Text>
-      </Pressable>
 
       {/* Todoist Token Modal */}
       <Modal visible={todoistModalVisible} transparent animationType="fade">
@@ -264,74 +343,7 @@ export default function SettingsScreen() {
   );
 }
 
-function LinearGradientAvatar({ label }: { label: string }) {
-  return (
-    <LinearGradient
-      colors={[T.primary, T.accent]}
-      style={styles.avatarWrap}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-    >
-      <Text style={styles.avatarText}>{label}</Text>
-    </LinearGradient>
-  );
-}
-
-function LinearGradientButton({ children, disabled }: { children: React.ReactNode; disabled?: boolean }) {
-  return (
-    <LinearGradient
-      colors={disabled ? [T.borderLight, T.borderLight] : [T.primary, T.accent]}
-      style={styles.primaryButtonInner}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 0 }}
-    >
-      {children}
-    </LinearGradient>
-  );
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <View style={styles.sectionCard}>{children}</View>
-    </View>
-  );
-}
-
-function Row({
-  label,
-  sublabel,
-  children,
-}: {
-  label: string;
-  sublabel?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <View style={styles.row}>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.rowLabel}>{label}</Text>
-        {sublabel ? <Text style={styles.rowSublabel}>{sublabel}</Text> : null}
-      </View>
-      <View style={{ marginLeft: 12 }}>{children}</View>
-    </View>
-  );
-}
-
-function Divider() {
-  return <View style={styles.divider} />;
-}
-
-function Toggle({ value, onChange }: { value: boolean; onChange: (next: boolean) => void }) {
-  return (
-    <Pressable onPress={() => onChange(!value)} style={[styles.toggle, value && styles.toggleOn]}>
-      <View style={[styles.toggleKnob, value && styles.toggleKnobOn]} />
-    </Pressable>
-  );
-}
-
-const styles = StyleSheet.create({
+const makeStyles = (s: (n: number) => number, fs: (n: number) => number, vs: (n: number) => number) => StyleSheet.create({
   container: { flex: 1, backgroundColor: T.bg },
   loadingContainer: {
     flex: 1,
@@ -340,135 +352,135 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  profileHeader: { flexDirection: "row", alignItems: "center", gap: 16, paddingHorizontal: 24, paddingTop: 60, paddingBottom: 18 },
+  profileHeader: { flexDirection: "row", alignItems: "center", gap: s(16), paddingHorizontal: s(24), paddingTop: vs(60), paddingBottom: s(18) },
   avatarWrap: {
-    width: 60,
-    height: 60,
-    borderRadius: 22,
+    width: s(60),
+    height: s(60),
+    borderRadius: s(22),
     backgroundColor: T.primary,
     alignItems: "center",
     justifyContent: "center",
     shadowColor: T.primary,
     shadowOpacity: 0.18,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: s(18),
+    shadowOffset: { width: 0, height: s(8) },
     elevation: 4,
   },
-  avatarText: { fontFamily: T.fontDisplay, fontSize: 26, color: "#fff" },
-  profileName: { fontFamily: T.fontBold, fontSize: 20, color: T.text },
-  profileEmail: { fontFamily: T.font, fontSize: 13, color: T.textSecondary, marginTop: 2 },
-  editChip: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 50, backgroundColor: T.primarySoft },
-  editChipText: { fontFamily: T.fontBold, fontSize: 12, color: T.primary },
+  avatarText: { fontFamily: T.fontDisplay, fontSize: fs(26), color: "#fff" },
+  profileName: { fontFamily: T.fontBold, fontSize: fs(20), color: T.text },
+  profileEmail: { fontFamily: T.font, fontSize: fs(13), color: T.textSecondary, marginTop: s(2) },
+  editChip: { paddingHorizontal: s(14), paddingVertical: s(6), borderRadius: s(50), backgroundColor: T.primarySoft },
+  editChipText: { fontFamily: T.fontBold, fontSize: fs(12), color: T.primary },
 
-  section: { paddingHorizontal: 24, marginTop: 18 },
+  section: { paddingHorizontal: s(24), marginTop: s(18) },
   sectionTitle: {
     fontFamily: T.fontBold,
-    fontSize: 12,
+    fontSize: fs(12),
     color: T.textMuted,
     letterSpacing: 1,
     textTransform: "uppercase",
-    marginBottom: 12,
-    paddingLeft: 2,
+    marginBottom: s(12),
+    paddingLeft: s(2),
   },
   sectionCard: {
     borderRadius: T.radiusSm,
     backgroundColor: T.bgCard,
     shadowColor: T.shadowColor,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: s(2) },
     shadowOpacity: T.shadowOpacity,
     shadowRadius: T.shadowRadius,
     elevation: 2,
     overflow: "hidden",
   },
-  row: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 14, paddingHorizontal: 18 },
-  rowLabel: { fontFamily: T.fontMedium, fontSize: 15, color: T.text },
-  rowSublabel: { fontFamily: T.font, fontSize: 12, color: T.textMuted, marginTop: 2 },
+  row: { flexDirection: "row", alignItems: "center", gap: s(14), paddingVertical: s(14), paddingHorizontal: s(18) },
+  rowLabel: { fontFamily: T.fontMedium, fontSize: fs(15), color: T.text },
+  rowSublabel: { fontFamily: T.font, fontSize: fs(12), color: T.textMuted, marginTop: s(2) },
   divider: { height: 1, backgroundColor: T.borderLight },
 
   inlineInput: {
-    minWidth: 140,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 12,
+    minWidth: s(140),
+    paddingVertical: s(10),
+    paddingHorizontal: s(14),
+    borderRadius: s(12),
     backgroundColor: T.surface,
     borderWidth: 1.5,
     borderColor: T.border,
     fontFamily: T.font,
-    fontSize: 14,
+    fontSize: fs(14),
     color: T.text,
     textAlign: "right",
   },
 
-  pillsRow: { flexDirection: "row", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" },
-  pill: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 50, backgroundColor: T.surface, borderWidth: 1.5, borderColor: T.borderLight },
+  pillsRow: { flexDirection: "row", gap: s(6), flexWrap: "wrap", justifyContent: "flex-end" },
+  pill: { paddingHorizontal: s(12), paddingVertical: s(7), borderRadius: s(50), backgroundColor: T.surface, borderWidth: 1.5, borderColor: T.borderLight },
   pillActive: { backgroundColor: `${T.primary}10`, borderColor: T.primary },
-  pillText: { fontFamily: T.fontSemiBold, fontSize: 12, color: T.textMuted },
+  pillText: { fontFamily: T.fontSemiBold, fontSize: fs(12), color: T.textMuted },
   pillTextActive: { color: T.primary },
 
   timeInput: {
-    width: 96,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 12,
+    width: s(96),
+    paddingVertical: s(10),
+    paddingHorizontal: s(12),
+    borderRadius: s(12),
     backgroundColor: T.surface,
     borderWidth: 1.5,
     borderColor: T.border,
     fontFamily: T.fontSemiBold,
-    fontSize: 14,
+    fontSize: fs(14),
     color: T.text,
     textAlign: "center",
   },
 
-  toggle: { width: 48, height: 28, borderRadius: 28, backgroundColor: T.border, padding: 3, justifyContent: "center" },
+  toggle: { width: s(48), height: s(28), borderRadius: 28, backgroundColor: T.border, padding: s(3), justifyContent: "center" },
   toggleOn: { backgroundColor: T.primary },
-  toggleKnob: { width: 22, height: 22, borderRadius: 11, backgroundColor: "#fff" },
-  toggleKnobOn: { transform: [{ translateX: 20 }] },
+  toggleKnob: { width: s(22), height: s(22), borderRadius: s(11), backgroundColor: "#fff" },
+  toggleKnobOn: { transform: [{ translateX: s(20) }] },
 
-  integrationRow: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 14, paddingHorizontal: 18 },
-  integrationIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: T.surface, alignItems: "center", justifyContent: "center" },
-  integrationName: { fontFamily: T.fontMedium, fontSize: 15, color: T.text },
-  integrationDesc: { fontFamily: T.font, fontSize: 12, color: T.textMuted, marginTop: 2 },
-  integrationAction: { fontFamily: T.fontBold, fontSize: 13, color: T.primary },
+  integrationRow: { flexDirection: "row", alignItems: "center", gap: s(14), paddingVertical: s(14), paddingHorizontal: s(18) },
+  integrationIcon: { width: s(36), height: s(36), borderRadius: s(10), backgroundColor: T.surface, alignItems: "center", justifyContent: "center" },
+  integrationName: { fontFamily: T.fontMedium, fontSize: fs(15), color: T.text },
+  integrationDesc: { fontFamily: T.font, fontSize: fs(12), color: T.textMuted, marginTop: s(2) },
+  integrationAction: { fontFamily: T.fontBold, fontSize: fs(13), color: T.primary },
 
-  primaryButton: { paddingHorizontal: 24, marginTop: 20 },
-  primaryButtonInner: { width: "100%", borderRadius: 56, paddingVertical: 16, alignItems: "center", justifyContent: "center" },
-  primaryButtonText: { color: "#fff", fontFamily: T.fontBold, fontSize: 16 },
+  primaryButton: { paddingHorizontal: s(24), marginTop: s(20) },
+  primaryButtonInner: { width: "100%", borderRadius: s(56), paddingVertical: s(16), alignItems: "center", justifyContent: "center" },
+  primaryButtonText: { color: "#fff", fontFamily: T.fontBold, fontSize: fs(16) },
 
-  signOutButton: { marginTop: 14, marginHorizontal: 24, paddingVertical: 16, borderRadius: 56, backgroundColor: T.surface, alignItems: "center" },
-  signOutText: { color: T.danger, fontFamily: T.fontBold, fontSize: 16 },
+  signOutButton: { marginTop: s(14), marginHorizontal: s(24), paddingVertical: s(16), borderRadius: s(56), backgroundColor: T.surface, alignItems: "center" },
+  signOutText: { color: T.danger, fontFamily: T.fontBold, fontSize: fs(16) },
 
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
-    padding: 32,
+    padding: s(32),
   },
   modalCard: {
     backgroundColor: T.bgCard,
     borderRadius: T.radius,
-    padding: 24,
+    padding: s(24),
     width: "100%",
   },
-  modalTitle: { fontSize: 18, fontWeight: "600", color: T.text, marginBottom: 8 },
-  modalDesc: { fontSize: 14, color: T.textSecondary, marginBottom: 16 },
+  modalTitle: { fontSize: fs(18), fontWeight: "600", color: T.text, marginBottom: s(8) },
+  modalDesc: { fontSize: fs(14), color: T.textSecondary, marginBottom: s(16) },
   modalInput: {
     backgroundColor: T.surface,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 14,
+    borderRadius: s(12),
+    paddingHorizontal: s(14),
+    paddingVertical: s(12),
+    fontSize: fs(14),
     color: T.text,
-    marginBottom: 20,
+    marginBottom: s(20),
   },
-  modalButtons: { flexDirection: "row", justifyContent: "flex-end", gap: 12 },
-  modalCancel: { paddingHorizontal: 20, paddingVertical: 10 },
+  modalButtons: { flexDirection: "row", justifyContent: "flex-end", gap: s(12) },
+  modalCancel: { paddingHorizontal: s(20), paddingVertical: s(10) },
   modalCancelText: { color: T.textSecondary, fontWeight: "600" },
   modalConfirm: {
     backgroundColor: T.primary,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
+    paddingHorizontal: s(20),
+    paddingVertical: s(10),
+    borderRadius: s(20),
   },
   modalConfirmText: { color: "#fff", fontWeight: "600" },
 });

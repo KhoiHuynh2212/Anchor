@@ -12,9 +12,12 @@ import {
 } from "react-native";
 import { useAuth } from "../../context/AuthContext";
 import { T } from "../../theme";
+import { useResponsive } from "../../hooks/useResponsive";
 
 export default function RegisterScreen({ navigation }: any) {
   const { signUp } = useAuth();
+  const { s, fs, vs, horizontalPadding, isTablet } = useResponsive();
+  const styles = makeStyles(s, fs, vs);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -44,7 +47,7 @@ export default function RegisterScreen({ navigation }: any) {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <View style={styles.inner}>
+      <View style={[styles.inner, isTablet && { paddingHorizontal: horizontalPadding }]}>
         <Text style={styles.title}>Sage</Text>
         <Text style={styles.subtitle}>Create your account</Text>
 
@@ -98,42 +101,42 @@ export default function RegisterScreen({ navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (s: (n: number) => number, fs: (n: number) => number, vs: (n: number) => number) => StyleSheet.create({
   container: { flex: 1, backgroundColor: T.bg },
-  inner: { flex: 1, justifyContent: "center", paddingHorizontal: 32 },
+  inner: { flex: 1, justifyContent: "center", paddingHorizontal: s(32) },
   title: {
-    fontSize: 48,
+    fontSize: fs(48),
     fontWeight: "700",
     color: T.primary,
     textAlign: "center",
-    marginBottom: 8,
+    marginBottom: s(8),
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: fs(16),
     color: T.textSecondary,
     textAlign: "center",
-    marginBottom: 48,
+    marginBottom: vs(48),
   },
   input: {
     backgroundColor: T.bgCard,
     borderRadius: T.radiusSm,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    fontSize: 16,
+    paddingHorizontal: s(20),
+    paddingVertical: s(16),
+    fontSize: fs(16),
     color: T.text,
-    marginBottom: 16,
+    marginBottom: s(16),
     borderWidth: 1,
     borderColor: T.border,
   },
   button: {
     backgroundColor: T.primary,
     borderRadius: T.radiusSm,
-    paddingVertical: 16,
+    paddingVertical: s(16),
     alignItems: "center",
-    marginTop: 8,
-    marginBottom: 24,
+    marginTop: s(8),
+    marginBottom: s(24),
   },
-  buttonText: { color: "#FFFFFF", fontSize: 18, fontWeight: "600" },
-  linkText: { textAlign: "center", color: T.textSecondary, fontSize: 14 },
+  buttonText: { color: "#FFFFFF", fontSize: fs(18), fontWeight: "600" },
+  linkText: { textAlign: "center", color: T.textSecondary, fontSize: fs(14) },
   link: { color: T.primary, fontWeight: "600" },
 });

@@ -16,6 +16,7 @@ import { T } from "../../theme";
 import AppIcon from "../../components/AppIcon";
 import api from "../../services/api";
 import { ensurePlayableUri } from "../../utils/audio";
+import { useResponsive } from "../../hooks/useResponsive";
 
 type VoiceState = "idle" | "listening" | "thinking" | "speaking";
 
@@ -28,12 +29,16 @@ const STATE_CONFIG = {
 
 export default function VoiceChatScreen() {
     const navigation = useNavigation<any>();
+    const { s, fs, vs, horizontalPadding, isTablet, isLandscape, contentWidth } = useResponsive();
+    const styles = makeStyles(s, fs, vs);
+
     const [state, setState] = useState<VoiceState>("idle");
     const [elapsed, setElapsed] = useState(0);
     const pulseAnim = useRef(new Animated.Value(1)).current;
     const recordingStartedAtMs = useRef<number | null>(null);
     const micHeldRef = useRef(false);
     const conversationIdRef = useRef<string | null>(null);
+    const isRecordingRef = useRef(false);  // Track actual recording state
     const [debugLastPressInAt, setDebugLastPressInAt] = useState<number>(0);
     const [debugStep, setDebugStep] = useState<string>("");
 
@@ -48,6 +53,16 @@ export default function VoiceChatScreen() {
     const playerStatus = useAudioPlayerStatus(player);
     const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
     const speakingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            if (isRecordingRef.current) {
+                recorder.stop().catch(() => {});
+                setAudioModeAsync({ allowsRecording: false }).catch(() => {});
+            }
+        };
+    }, []);
 
     // Detect playback completion to transition from "speaking" to "idle"
     useEffect(() => {
@@ -173,6 +188,7 @@ export default function VoiceChatScreen() {
             await recorder.prepareToRecordAsync();
             setDebugStep("recording");
             recorder.record();
+            isRecordingRef.current = true;  // Mark as recording
             recordingStartedAtMs.current = Date.now();
             setState("listening");
             setError(null);
@@ -180,19 +196,43 @@ export default function VoiceChatScreen() {
             console.log("Recording error:", e);
             setError("Failed to start recording");
             setDebugStep("recording error");
+            isRecordingRef.current = false;  // Reset on error
+            // Clean up audio mode
+            try {
+                await setAudioModeAsync({ allowsRecording: false });
+            } catch {}
         }
     };
 
     const stopRecording = async () => {
-        if (state !== "listening") return;
+        // Check actual recording state, but still attempt cleanup
+        const wasRecording = isRecordingRef.current;
 
         try {
             const startedAt = recordingStartedAtMs.current;
             const tooShort = !!startedAt && Date.now() - startedAt < 250;
 
             setDebugStep("stopping recorder");
-            await recorder.stop();
-            await setAudioModeAsync({ allowsRecording: false });
+
+            // Always attempt to stop if we think we're recording
+            if (wasRecording || state === "listening") {
+                try {
+                    await recorder.stop();
+                } catch (stopError) {
+                    console.log("Recorder stop error (may already be stopped):", stopError);
+                    // Don't throw - continue with cleanup
+                }
+            }
+
+            isRecordingRef.current = false;  // Always mark as not recording
+
+            // Always restore audio mode
+            try {
+                await setAudioModeAsync({ allowsRecording: false });
+            } catch (modeError) {
+                console.log("Audio mode reset error:", modeError);
+            }
+
             const uri = recorder.uri;
             recordingStartedAtMs.current = null;
 
@@ -202,7 +242,7 @@ export default function VoiceChatScreen() {
                 return;
             }
 
-            if (uri) {
+            if (uri && wasRecording) {  // Check wasRecording instead of state
                 setDebugStep("encoding audio");
                 setState("thinking");
                 setIsProcessing(true);
@@ -222,6 +262,12 @@ export default function VoiceChatScreen() {
             setError("Failed to process recording");
             setState("idle");
             setDebugStep("stop/encode error");
+            isRecordingRef.current = false;  // Always reset on error
+
+            // Attempt audio mode cleanup even on error
+            try {
+                await setAudioModeAsync({ allowsRecording: false });
+            } catch {}
         }
     };
 
@@ -368,7 +414,7 @@ export default function VoiceChatScreen() {
                     style={styles.headerButton}
                     onPress={() => navigation.navigate("Nudges")}
                 >
-                    <AppIcon name="notifications-outline" size={16} color="rgba(255,255,255,0.5)" />
+                    <AppIcon name="notifications-outline" size={s(16)} color="rgba(255,255,255,0.5)" />
                 </TouchableOpacity>
 
                 <View style={styles.sessionBadge}>
@@ -377,7 +423,7 @@ export default function VoiceChatScreen() {
                 </View>
 
                 <View style={styles.headerButton}>
-                    <AppIcon name="ellipsis-vertical" size={16} color="rgba(255,255,255,0.7)" />
+                    <AppIcon name="ellipsis-vertical" size={s(16)} color="rgba(255,255,255,0.7)" />
                 </View>
             </View>
 
@@ -391,7 +437,7 @@ export default function VoiceChatScreen() {
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
                     >
-                        <AppIcon name="leaf" size={22} color="#fff" />
+                        <AppIcon name="leaf" size={s(22)} color="#fff" />
                     </LinearGradient>
                     <Text style={styles.anchorName}>Sage</Text>
                     <Text style={styles.anchorContext}>Voice session</Text>
@@ -456,7 +502,7 @@ export default function VoiceChatScreen() {
                 {/* Error display */}
                 {error && (
                     <View style={styles.errorBadge}>
-                        <AppIcon name="alert-circle" size={14} color={T.danger} />
+                        <AppIcon name="alert-circle" size={s(14)} color={T.danger} />
                         <Text style={styles.errorText}>{error}</Text>
                     </View>
                 )}
@@ -466,7 +512,7 @@ export default function VoiceChatScreen() {
             <View style={styles.bottomControls}>
                 {/* Mute */}
                 <TouchableOpacity style={styles.controlButton}>
-                    <AppIcon name="volume-mute" size={18} color="rgba(255,255,255,0.7)" />
+                    <AppIcon name="volume-mute" size={s(18)} color="rgba(255,255,255,0.7)" />
                 </TouchableOpacity>
 
                 {/* Main mic button */}
@@ -486,9 +532,9 @@ export default function VoiceChatScreen() {
                         end={{ x: 1, y: 1 }}
                     >
                         {state === "speaking" ? (
-                            <AppIcon name="stop" size={20} color="#fff" />
+                            <AppIcon name="stop" size={s(20)} color="#fff" />
                         ) : (
-                            <AppIcon name="mic" size={20} color="#fff" />
+                            <AppIcon name="mic" size={s(20)} color="#fff" />
                         )}
                     </LinearGradient>
                 </TouchableOpacity>
@@ -498,30 +544,29 @@ export default function VoiceChatScreen() {
                     style={styles.endButton}
                     onPress={() => navigation.navigate("Home")}
                 >
-                    <AppIcon name="call" size={20} color="#EA4335" />
+                    <AppIcon name="call" size={s(20)} color="#EA4335" />
                 </TouchableOpacity>
             </View>
         </View>
     );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (s: (n: number) => number, fs: (n: number) => number, vs: (n: number) => number) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: T.bgDark,
         alignItems: "center",
         justifyContent: "space-between",
-        paddingTop: 50,
-        // Leave space for the custom bottom tab bar so it doesn't cover the in-screen mic.
-        paddingBottom: 150,
-        paddingHorizontal: 24,
+        paddingTop: vs(50),
+        paddingBottom: vs(150),
+        paddingHorizontal: s(24),
     },
     ambientGlow: {
         position: "absolute",
         top: "30%",
-        width: 350,
-        height: 350,
-        borderRadius: 175,
+        width: s(350),
+        height: s(350),
+        borderRadius: s(175),
         backgroundColor: `${T.primary}20`,
     },
     header: {
@@ -531,9 +576,9 @@ const styles = StyleSheet.create({
         width: "100%",
     },
     headerButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: s(40),
+        height: s(40),
+        borderRadius: s(20),
         backgroundColor: "rgba(255,255,255,0.08)",
         alignItems: "center",
         justifyContent: "center",
@@ -541,12 +586,12 @@ const styles = StyleSheet.create({
     sessionBadge: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 8,
+        gap: s(8),
     },
     sessionDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
+        width: s(8),
+        height: s(8),
+        borderRadius: s(4),
         backgroundColor: "rgba(255,255,255,0.3)",
     },
     sessionDotActive: {
@@ -554,98 +599,98 @@ const styles = StyleSheet.create({
     },
     sessionText: {
         color: "rgba(255,255,255,0.5)",
-        fontSize: 13,
+        fontSize: fs(13),
         fontFamily: T.fontMedium,
     },
     centerArea: {
         alignItems: "center",
-        gap: 28,
+        gap: s(28),
     },
     anchorIdentity: {
         alignItems: "center",
     },
     anchorLogo: {
-        width: 52,
-        height: 52,
-        borderRadius: 18,
+        width: s(52),
+        height: s(52),
+        borderRadius: s(18),
         alignItems: "center",
         justifyContent: "center",
-        marginBottom: 12,
+        marginBottom: s(12),
     },
     anchorName: {
-        fontSize: 22,
+        fontSize: fs(22),
         fontFamily: T.fontDisplay,
         color: "#fff",
-        marginBottom: 4,
+        marginBottom: s(4),
     },
     anchorContext: {
-        fontSize: 13,
+        fontSize: fs(13),
         fontFamily: T.font,
         color: "rgba(255,255,255,0.4)",
     },
     orbWrapper: {
-        width: 180,
-        height: 180,
+        width: s(180),
+        height: s(180),
         alignItems: "center",
         justifyContent: "center",
     },
     orb: {
-        width: 180,
-        height: 180,
-        borderRadius: 90,
+        width: s(180),
+        height: s(180),
+        borderRadius: s(90),
         alignItems: "center",
         justifyContent: "center",
         shadowColor: T.primary,
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: 0.3,
-        shadowRadius: 60,
+        shadowRadius: s(60),
         elevation: 10,
     },
     pulseRing: {
         position: "absolute",
-        borderRadius: 200,
+        borderRadius: s(200),
         borderWidth: 1.5,
         borderColor: `${T.accent}30`,
     },
     pulseRing1: {
-        width: 220,
-        height: 220,
+        width: s(220),
+        height: s(220),
     },
     pulseRing2: {
-        width: 260,
-        height: 260,
+        width: s(260),
+        height: s(260),
     },
     orbInner: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
+        width: s(80),
+        height: s(80),
+        borderRadius: s(40),
         backgroundColor: "rgba(255,255,255,0.1)",
     },
     stateLabel: {
         alignItems: "center",
     },
     stateLabelText: {
-        fontSize: 17,
+        fontSize: fs(17),
         fontFamily: T.fontMedium,
         color: "#fff",
-        marginBottom: 4,
+        marginBottom: s(4),
     },
     stateSublabel: {
-        fontSize: 13,
+        fontSize: fs(13),
         fontFamily: T.font,
         color: "rgba(255,255,255,0.35)",
     },
     debugPressText: {
-        marginTop: 8,
-        fontSize: 11,
+        marginTop: s(8),
+        fontSize: fs(11),
         fontFamily: T.fontMedium,
         color: "rgba(255,255,255,0.55)",
     },
     transcriptBox: {
-        maxWidth: 280,
-        padding: 14,
-        paddingHorizontal: 20,
-        borderRadius: 16,
+        maxWidth: s(280),
+        padding: s(14),
+        paddingHorizontal: s(20),
+        borderRadius: s(16),
         backgroundColor: "rgba(255,255,255,0.06)",
         borderWidth: 1,
         borderColor: "rgba(255,255,255,0.08)",
@@ -654,60 +699,60 @@ const styles = StyleSheet.create({
         borderColor: `${T.accentWarm}15`,
     },
     transcriptText: {
-        fontSize: 14,
+        fontSize: fs(14),
         fontFamily: T.font,
         color: "rgba(255,255,255,0.7)",
-        lineHeight: 21,
+        lineHeight: fs(21),
         textAlign: "center",
     },
     errorBadge: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 6,
-        paddingVertical: 8,
-        paddingHorizontal: 14,
-        borderRadius: 12,
+        gap: s(6),
+        paddingVertical: vs(8),
+        paddingHorizontal: s(14),
+        borderRadius: s(12),
         backgroundColor: `${T.danger}15`,
         borderWidth: 1,
         borderColor: `${T.danger}25`,
     },
     errorText: {
-        fontSize: 12,
+        fontSize: fs(12),
         fontFamily: T.fontMedium,
         color: T.danger,
     },
     bottomControls: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 28,
+        gap: s(28),
     },
     controlButton: {
-        width: 52,
-        height: 52,
-        borderRadius: 26,
+        width: s(52),
+        height: s(52),
+        borderRadius: s(26),
         backgroundColor: "rgba(255,255,255,0.08)",
         alignItems: "center",
         justifyContent: "center",
     },
     mainMicButton: {
-        width: 72,
-        height: 72,
-        borderRadius: 36,
+        width: s(72),
+        height: s(72),
+        borderRadius: s(36),
         alignItems: "center",
         justifyContent: "center",
         shadowColor: T.primary,
-        shadowOffset: { width: 0, height: 8 },
+        shadowOffset: { width: 0, height: s(8) },
         shadowOpacity: 0.25,
-        shadowRadius: 16,
+        shadowRadius: s(16),
         elevation: 8,
     },
     mainMicButtonListening: {
         transform: [{ scale: 1.08 }],
     },
     endButton: {
-        width: 52,
-        height: 52,
-        borderRadius: 26,
+        width: s(52),
+        height: s(52),
+        borderRadius: s(26),
         backgroundColor: `${T.danger}15`,
         borderWidth: 1,
         borderColor: `${T.danger}20`,

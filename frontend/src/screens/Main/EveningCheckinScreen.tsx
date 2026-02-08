@@ -16,6 +16,7 @@ import { useNavigation } from "@react-navigation/native";
 import { T } from "../../theme";
 import api from "../../services/api";
 import AppIcon from "../../components/AppIcon";
+import { useResponsive } from "../../hooks/useResponsive";
 
 type Message = {
   role: "user" | "assistant";
@@ -31,6 +32,8 @@ type Insights = {
 
 export default function EveningCheckinScreen() {
   const navigation = useNavigation<any>();
+  const { s, fs, vs, horizontalPadding, isTablet } = useResponsive();
+  const styles = makeStyles(s, fs, vs);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -122,17 +125,16 @@ export default function EveningCheckinScreen() {
     )
   );
 
-  // Pre-start screen
   if (!started) {
     return (
-      <View style={styles.startContainer}>
+      <View style={[styles.startContainer, isTablet && { maxWidth: s(600), alignSelf: "center", width: "100%" }]}>
         <TouchableOpacity
           style={styles.notificationButton}
           onPress={() => navigation.navigate("Nudges")}
         >
-          <AppIcon name="notifications-outline" size={18} color="rgba(0,119,182,0.5)" />
+          <AppIcon name="notifications-outline" size={s(18)} color="rgba(0,119,182,0.5)" />
         </TouchableOpacity>
-        <AppIcon name="moon" size={48} color={T.primary} style={{ marginBottom: 24 }} />
+        <AppIcon name="moon" size={s(48)} color={T.primary} style={{ marginBottom: s(24) }} />
         <Text style={styles.startTitle}>Evening Reflection</Text>
         <Text style={styles.startSubtitle}>
           Take a few minutes to check in with yourself. Anchor will guide you through a reflective conversation.
@@ -153,18 +155,16 @@ export default function EveningCheckinScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, isTablet && { maxWidth: s(700), alignSelf: "center", width: "100%" }]}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      {/* Minimal notifications bell */}
       <TouchableOpacity
-        style={[styles.notificationButton, { top: 20 }]}
+        style={[styles.notificationButton, { top: s(20) }]}
         onPress={() => navigation.navigate("Nudges")}
       >
-        <AppIcon name="notifications-outline" size={18} color="rgba(0,119,182,0.5)" />
+        <AppIcon name="notifications-outline" size={s(18)} color="rgba(0,119,182,0.5)" />
       </TouchableOpacity>
 
-      {/* Header */}
       <View style={styles.header}>
         <LinearGradient
           colors={['#003F66', '#0077B6']}
@@ -172,7 +172,7 @@ export default function EveningCheckinScreen() {
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         >
-          <AppIcon name="moon" size={18} color="#fff" />
+          <AppIcon name="moon" size={s(18)} color="#fff" />
         </LinearGradient>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>Evening Reflection</Text>
@@ -183,7 +183,7 @@ export default function EveningCheckinScreen() {
         {complete ? (
           <View style={styles.completeBadge}>
             <View style={styles.completeBadgeRow}>
-              <AppIcon name="checkmark" size={12} color={T.success} />
+              <AppIcon name="checkmark" size={s(12)} color={T.success} />
               <Text style={styles.completeBadgeText}>Done</Text>
             </View>
           </View>
@@ -199,7 +199,6 @@ export default function EveningCheckinScreen() {
         ) : null}
       </View>
 
-      {/* Messages */}
       <FlatList
         ref={flatListRef}
         data={messages}
@@ -217,7 +216,6 @@ export default function EveningCheckinScreen() {
         </View>
       )}
 
-      {/* Insights Card */}
       {complete && insights && (
         <View style={styles.insightsCard}>
           <Text style={styles.insightsTitle}>Session Insights</Text>
@@ -226,7 +224,7 @@ export default function EveningCheckinScreen() {
             <View style={styles.insightValueRow}>
               <AppIcon
                 name={insights.mood === "positive" ? "happy-outline" : insights.mood === "negative" ? "sad-outline" : "remove-outline"}
-                size={14}
+                size={s(14)}
                 color={T.textSecondary}
               />
               <Text style={styles.insightValueText}>{insights.mood}</Text>
@@ -247,7 +245,6 @@ export default function EveningCheckinScreen() {
         </View>
       )}
 
-      {/* Input */}
       {!complete && (
         <View style={styles.inputRow}>
           <TextInput
@@ -270,7 +267,7 @@ export default function EveningCheckinScreen() {
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
             >
-              <AppIcon name="arrow-up" size={20} color="#fff" />
+              <AppIcon name="arrow-up" size={s(20)} color="#fff" />
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -279,15 +276,15 @@ export default function EveningCheckinScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: T.bg },
+const makeStyles = (s: (n: number) => number, fs: (n: number) => number, vs: (n: number) => number) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: T.bg, paddingBottom: s(100) },
   notificationButton: {
     position: "absolute",
-    top: 60,
-    left: 20,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    top: vs(60),
+    left: s(20),
+    width: s(36),
+    height: s(36),
+    borderRadius: s(18),
     backgroundColor: "transparent",
     alignItems: "center",
     justifyContent: "center",
@@ -298,147 +295,147 @@ const styles = StyleSheet.create({
     backgroundColor: T.bg,
     justifyContent: "center",
     alignItems: "center",
-    padding: 32,
+    padding: s(32),
   },
-  startTitle: { fontSize: 28, fontFamily: T.fontDisplay, color: T.text, marginBottom: 12 },
+  startTitle: { fontSize: fs(28), fontFamily: T.fontDisplay, color: T.text, marginBottom: s(12) },
   startSubtitle: {
-    fontSize: 15,
+    fontSize: fs(15),
     fontFamily: T.font,
     color: T.textSecondary,
     textAlign: "center",
-    lineHeight: 24,
-    marginBottom: 40,
-    maxWidth: 300,
+    lineHeight: fs(24),
+    marginBottom: s(40),
+    maxWidth: s(300),
   },
   startButton: {
-    borderRadius: 30,
-    paddingVertical: 18,
-    paddingHorizontal: 48,
+    borderRadius: s(30),
+    paddingVertical: s(18),
+    paddingHorizontal: s(48),
   },
-  startButtonText: { color: "#fff", fontSize: 16, fontFamily: T.fontSemiBold },
+  startButtonText: { color: "#fff", fontSize: fs(16), fontFamily: T.fontSemiBold },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    padding: 16,
-    paddingTop: 56,
+    gap: s(12),
+    padding: s(16),
+    paddingTop: vs(56),
     borderBottomWidth: 1,
     borderBottomColor: T.border,
   },
   moonAvatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 14,
+    width: s(38),
+    height: s(38),
+    borderRadius: s(14),
     alignItems: "center",
     justifyContent: "center",
   },
-  headerTitle: { fontSize: 16, fontFamily: T.fontSemiBold, color: T.text },
-  headerSubtitle: { fontSize: 12, fontFamily: T.font, color: T.textMuted },
+  headerTitle: { fontSize: fs(16), fontFamily: T.fontSemiBold, color: T.text },
+  headerSubtitle: { fontSize: fs(12), fontFamily: T.font, color: T.textMuted },
   completeBadge: {
     backgroundColor: T.successSoft,
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    borderRadius: s(20),
+    paddingHorizontal: s(12),
+    paddingVertical: s(6),
   },
-  completeBadgeRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  completeBadgeText: { color: T.success, fontSize: 12, fontFamily: T.fontSemiBold },
+  completeBadgeRow: { flexDirection: "row", alignItems: "center", gap: s(6) },
+  completeBadgeText: { color: T.success, fontSize: fs(12), fontFamily: T.fontSemiBold },
   endSessionButton: {
     backgroundColor: T.surface,
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    borderRadius: s(20),
+    paddingHorizontal: s(14),
+    paddingVertical: s(6),
   },
-  endSessionText: { color: T.textSecondary, fontSize: 12, fontFamily: T.fontSemiBold },
-  messageList: { padding: 20, paddingBottom: 8 },
+  endSessionText: { color: T.textSecondary, fontSize: fs(12), fontFamily: T.fontSemiBold },
+  messageList: { padding: s(20), paddingBottom: s(8) },
   messageBubble: {
     maxWidth: "82%",
-    padding: 14,
-    paddingHorizontal: 18,
-    marginBottom: 14,
-    borderRadius: 20,
+    padding: s(14),
+    paddingHorizontal: s(18),
+    marginBottom: s(14),
+    borderRadius: s(20),
   },
   userBubble: {
     alignSelf: "flex-end",
-    borderBottomRightRadius: 6,
+    borderBottomRightRadius: s(6),
   },
   aiBubble: {
     alignSelf: "flex-start",
     backgroundColor: T.bgCard,
-    borderBottomLeftRadius: 6,
+    borderBottomLeftRadius: s(6),
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: s(2) },
     shadowOpacity: 0.04,
-    shadowRadius: 10,
+    shadowRadius: s(10),
     elevation: 2,
   },
-  messageText: { fontSize: 15, fontFamily: T.font, lineHeight: 22 },
+  messageText: { fontSize: fs(15), fontFamily: T.font, lineHeight: fs(22) },
   userText: { color: "#fff" },
   aiText: { color: T.text },
-  typingIndicator: { paddingHorizontal: 20, paddingBottom: 8 },
+  typingIndicator: { paddingHorizontal: s(20), paddingBottom: s(8) },
   typingBubble: {
     alignSelf: "flex-start",
     backgroundColor: T.bgCard,
-    borderRadius: 20,
-    borderBottomLeftRadius: 6,
-    padding: 14,
-    paddingHorizontal: 24,
+    borderRadius: s(20),
+    borderBottomLeftRadius: s(6),
+    padding: s(14),
+    paddingHorizontal: s(24),
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: s(2) },
     shadowOpacity: 0.04,
-    shadowRadius: 10,
+    shadowRadius: s(10),
     elevation: 2,
   },
   insightsCard: {
-    margin: 16,
+    margin: s(16),
     backgroundColor: T.bgCard,
     borderRadius: T.radiusSm,
-    padding: 18,
+    padding: s(18),
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: s(2) },
     shadowOpacity: 0.06,
-    shadowRadius: 12,
+    shadowRadius: s(12),
     elevation: 3,
   },
   insightsTitle: {
-    fontSize: 16,
+    fontSize: fs(16),
     fontFamily: T.fontSemiBold,
     color: T.text,
-    marginBottom: 12,
+    marginBottom: s(12),
   },
   insightRow: {
     flexDirection: "row",
-    marginBottom: 8,
-    gap: 8,
+    marginBottom: s(8),
+    gap: s(8),
   },
-  insightLabel: { fontSize: 13, fontFamily: T.fontSemiBold, color: T.textSecondary },
-  insightValue: { fontSize: 13, fontFamily: T.font, color: T.text, flex: 1 },
-  insightValueRow: { flexDirection: "row", alignItems: "center", gap: 6, flex: 1 },
-  insightValueText: { fontSize: 13, fontFamily: T.font, color: T.text },
+  insightLabel: { fontSize: fs(13), fontFamily: T.fontSemiBold, color: T.textSecondary },
+  insightValue: { fontSize: fs(13), fontFamily: T.font, color: T.text, flex: 1 },
+  insightValueRow: { flexDirection: "row", alignItems: "center", gap: s(6), flex: 1 },
+  insightValueText: { fontSize: fs(13), fontFamily: T.font, color: T.text },
   inputRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    padding: 14,
-    paddingBottom: 34,
+    gap: s(10),
+    padding: s(14),
+    paddingBottom: s(20),
     borderTopWidth: 1,
     borderTopColor: T.border,
   },
   textInput: {
     flex: 1,
     backgroundColor: T.bgCard,
-    borderRadius: 25,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    fontSize: 14,
+    borderRadius: s(25),
+    paddingHorizontal: s(18),
+    paddingVertical: s(14),
+    fontSize: fs(14),
     fontFamily: T.font,
     color: T.text,
     borderWidth: 1.5,
     borderColor: T.border,
   },
   sendButton: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: s(46),
+    height: s(46),
+    borderRadius: s(23),
     alignItems: "center",
     justifyContent: "center",
   },

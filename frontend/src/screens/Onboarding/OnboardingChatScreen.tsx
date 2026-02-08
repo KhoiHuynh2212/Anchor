@@ -15,6 +15,7 @@ import { T } from "../../theme";
 import api from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import AppIcon from "../../components/AppIcon";
+import { useResponsive } from "../../hooks/useResponsive";
 
 type Message = {
   role: "user" | "assistant";
@@ -23,6 +24,8 @@ type Message = {
 
 export default function OnboardingChatScreen() {
   const { refreshProfile } = useAuth();
+  const { s, fs, vs, horizontalPadding, isTablet } = useResponsive();
+  const styles = makeStyles(s, fs, vs);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -116,7 +119,7 @@ export default function OnboardingChatScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, isTablet && { paddingHorizontal: horizontalPadding }]}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={0}
     >
@@ -128,7 +131,7 @@ export default function OnboardingChatScreen() {
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         >
-          <AppIcon name="leaf" size={20} color="#fff" />
+          <AppIcon name="leaf" size={s(20)} color="#fff" />
         </LinearGradient>
         <View>
           <Text style={styles.headerTitle}>Anchor</Text>
@@ -177,7 +180,7 @@ export default function OnboardingChatScreen() {
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           >
-            <AppIcon name="arrow-up" size={20} color="#fff" />
+            <AppIcon name="arrow-up" size={s(20)} color="#fff" />
           </LinearGradient>
         </TouchableOpacity>
       </View>
@@ -185,90 +188,90 @@ export default function OnboardingChatScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (s: (n: number) => number, fs: (n: number) => number, vs: (n: number) => number) => StyleSheet.create({
   container: { flex: 1, backgroundColor: T.bg },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    padding: 16,
-    paddingTop: 56,
+    gap: s(12),
+    padding: s(16),
+    paddingTop: vs(56),
     borderBottomWidth: 1,
     borderBottomColor: T.border,
   },
   sageAvatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 14,
+    width: s(38),
+    height: s(38),
+    borderRadius: s(14),
     alignItems: "center",
     justifyContent: "center",
   },
-  headerTitle: { fontSize: 16, fontFamily: T.fontSemiBold, color: T.text },
-  headerSubtitle: { fontSize: 12, fontFamily: T.font, color: T.success },
-  messageList: { padding: 20, paddingBottom: 8 },
+  headerTitle: { fontSize: fs(16), fontFamily: T.fontSemiBold, color: T.text },
+  headerSubtitle: { fontSize: fs(12), fontFamily: T.font, color: T.success },
+  messageList: { padding: s(20), paddingBottom: s(8) },
   messageBubble: {
     maxWidth: "82%",
-    padding: 14,
-    paddingHorizontal: 18,
-    marginBottom: 14,
-    borderRadius: 20,
+    padding: s(14),
+    paddingHorizontal: s(18),
+    marginBottom: s(14),
+    borderRadius: s(20),
   },
   userBubble: {
     alignSelf: "flex-end",
-    borderBottomRightRadius: 6,
+    borderBottomRightRadius: s(6),
   },
   aiBubble: {
     alignSelf: "flex-start",
     backgroundColor: T.bgCard,
-    borderBottomLeftRadius: 6,
+    borderBottomLeftRadius: s(6),
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: s(2) },
     shadowOpacity: 0.04,
-    shadowRadius: 10,
+    shadowRadius: s(10),
     elevation: 2,
   },
-  messageText: { fontSize: 15, fontFamily: T.font, lineHeight: 22 },
+  messageText: { fontSize: fs(15), fontFamily: T.font, lineHeight: fs(22) },
   userText: { color: "#fff" },
   aiText: { color: T.text },
-  typingIndicator: { paddingHorizontal: 20, paddingBottom: 8 },
+  typingIndicator: { paddingHorizontal: s(20), paddingBottom: s(8) },
   typingBubble: {
     alignSelf: "flex-start",
     backgroundColor: T.bgCard,
-    borderRadius: 20,
-    borderBottomLeftRadius: 6,
-    padding: 14,
-    paddingHorizontal: 24,
+    borderRadius: s(20),
+    borderBottomLeftRadius: s(6),
+    padding: s(14),
+    paddingHorizontal: s(24),
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: s(2) },
     shadowOpacity: 0.04,
-    shadowRadius: 10,
+    shadowRadius: s(10),
     elevation: 2,
   },
   inputRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    padding: 14,
-    paddingBottom: 34,
+    gap: s(10),
+    padding: s(14),
+    paddingBottom: s(34),
     borderTopWidth: 1,
     borderTopColor: T.border,
   },
   textInput: {
     flex: 1,
     backgroundColor: T.bgCard,
-    borderRadius: 25,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    fontSize: 14,
+    borderRadius: s(25),
+    paddingHorizontal: s(18),
+    paddingVertical: s(14),
+    fontSize: fs(14),
     fontFamily: T.font,
     color: T.text,
     borderWidth: 1.5,
     borderColor: T.border,
   },
   sendButton: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: s(46),
+    height: s(46),
+    borderRadius: s(23),
     alignItems: "center",
     justifyContent: "center",
   },

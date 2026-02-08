@@ -16,6 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { T } from "../../theme";
 import api from "../../services/api";
 import { ensurePlayableUri as _ensurePlayableUri } from "../../utils/audio";
+import { useResponsive } from "../../hooks/useResponsive";
 
 type BriefData = {
   text: string;
@@ -26,6 +27,9 @@ type BriefData = {
 };
 
 export default function MorningBriefScreen() {
+  const { s, fs, vs, horizontalPadding, isTablet } = useResponsive();
+  const styles = makeStyles(s, fs, vs);
+
   const navigation: any = useNavigation();
   const [brief, setBrief] = useState<BriefData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -157,7 +161,7 @@ export default function MorningBriefScreen() {
     <View style={styles.container}>
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 130 }}
+        contentContainerStyle={{ paddingBottom: s(130) }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -174,7 +178,7 @@ export default function MorningBriefScreen() {
         <View style={styles.headerGradient}>
           <View style={styles.headerRow}>
             <Pressable style={styles.nudgesButton} onPress={() => navigation.navigate("Nudges")}>
-              <Ionicons name="notifications-outline" size={18} color="rgba(0,119,182,0.5)" />
+              <Ionicons name="notifications-outline" size={s(18)} color="rgba(0,119,182,0.5)" />
             </Pressable>
             <View style={{ flex: 1 }}>
               <Text style={styles.dateText}>{getDate()}</Text>
@@ -205,7 +209,7 @@ export default function MorningBriefScreen() {
             <View style={styles.briefBlobTwo} />
 
             <View style={styles.briefLabelRow}>
-              <Ionicons name="sparkles" size={14} color={T.accentLight} />
+              <Ionicons name="sparkles" size={s(14)} color={T.accentLight} />
               <Text style={styles.briefLabel}>Morning Brief</Text>
             </View>
 
@@ -219,7 +223,7 @@ export default function MorningBriefScreen() {
                 onPress={toggleAudio}
                 disabled={!brief?.audio_base64}
               >
-                <Ionicons name={playing ? "pause" : "play"} size={18} color="#fff" />
+                <Ionicons name={playing ? "pause" : "play"} size={s(18)} color="#fff" />
               </Pressable>
               <View style={{ flex: 1 }}>
                 <View style={styles.progressBarContainer}>
@@ -236,7 +240,7 @@ export default function MorningBriefScreen() {
           </LinearGradient>
         </View>
 
-        <View style={{ paddingHorizontal: 24 }}>
+        <View style={[{ paddingHorizontal: s(24) }, isTablet && { paddingHorizontal: horizontalPadding }]}>
           {/* Today's Focus */}
           <View style={styles.sectionHeaderRow}>
             <Text style={styles.sectionTitle}>Today's Focus</Text>
@@ -245,7 +249,7 @@ export default function MorningBriefScreen() {
             </Pressable>
           </View>
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: s(12) }}>
             {(brief?.tasks || []).slice(0, 6).map((task, i) => {
               const ps = getPriorityStyle(task.priority);
               const dueColor =
@@ -255,7 +259,7 @@ export default function MorningBriefScreen() {
                 <View key={i} style={styles.focusCard}>
                   <Ionicons
                     name={task.icon ? getTaskIcon(task.icon) : "flag"}
-                    size={22}
+                    size={s(22)}
                     color={T.text}
                     style={styles.focusIcon}
                   />
@@ -267,7 +271,7 @@ export default function MorningBriefScreen() {
                       {task.due}
                     </Text>
                   ) : (
-                    <View style={{ height: 16 }} />
+                    <View style={{ height: s(16) }} />
                   )}
                   <View style={styles.focusProgressTrack}>
                     <LinearGradient
@@ -295,7 +299,7 @@ export default function MorningBriefScreen() {
                   {evt.time || ""} {evt.duration ? `· ${evt.duration}` : ""}
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color={T.textMuted} />
+              <Ionicons name="chevron-forward" size={s(18)} color={T.textMuted} />
             </View>
           ))}
 
@@ -307,13 +311,13 @@ export default function MorningBriefScreen() {
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
             >
-              <Ionicons name="mic" size={20} color="#fff" />
+              <Ionicons name="mic" size={s(20)} color="#fff" />
             </LinearGradient>
             <View style={{ flex: 1 }}>
               <Text style={styles.talkTitle}>Talk to Sage</Text>
               <Text style={styles.talkSubtitle}>Quick voice check-in anytime</Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={T.primary} />
+            <Ionicons name="chevron-forward" size={s(18)} color={T.primary} />
           </Pressable>
         </View>
       </ScrollView>
@@ -321,164 +325,164 @@ export default function MorningBriefScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (s: (n: number) => number, fs: (n: number) => number, vs: (n: number) => number) => StyleSheet.create({
   container: { flex: 1, backgroundColor: T.bg },
   loadingContainer: { flex: 1, backgroundColor: T.bg, justifyContent: "center", alignItems: "center" },
-  loadingText: { color: T.textSecondary, fontSize: 14, fontFamily: T.font, marginTop: 16 },
+  loadingText: { color: T.textSecondary, fontSize: fs(14), fontFamily: T.font, marginTop: vs(16) },
 
   headerGradient: {
     backgroundColor: T.bgDeep,
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 20,
+    paddingHorizontal: s(24),
+    paddingTop: vs(60),
+    paddingBottom: s(20),
   },
-  headerRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 20 },
-  dateText: { fontFamily: T.font, fontSize: 13, color: T.textMuted, marginBottom: 2, fontWeight: "500" },
-  greetingText: { fontFamily: T.fontDisplay, fontSize: 28, color: T.text, fontWeight: "400" },
+  headerRow: { flexDirection: "row", alignItems: "center", gap: s(12), marginBottom: s(20) },
+  dateText: { fontFamily: T.font, fontSize: fs(13), color: T.textMuted, marginBottom: s(2), fontWeight: "500" },
+  greetingText: { fontFamily: T.fontDisplay, fontSize: fs(28), color: T.text, fontWeight: "400" },
   nudgesButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: s(36),
+    height: s(36),
+    borderRadius: s(18),
     backgroundColor: "transparent",
     alignItems: "center",
     justifyContent: "center",
   },
 
   avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: s(44),
+    height: s(44),
+    borderRadius: s(22),
     alignItems: "center",
     justifyContent: "center",
     shadowColor: T.primary,
     shadowOpacity: 0.14,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: s(16),
+    shadowOffset: { width: 0, height: s(6) },
     elevation: 4,
   },
-  avatarText: { fontFamily: T.fontDisplay, fontSize: 20, color: "#fff" },
+  avatarText: { fontFamily: T.fontDisplay, fontSize: fs(20), color: "#fff" },
 
-  briefCard: { borderRadius: T.radius, padding: 20, overflow: "hidden" },
+  briefCard: { borderRadius: T.radius, padding: s(20), overflow: "hidden" },
   briefBlobOne: {
     position: "absolute",
-    top: -30,
-    right: -30,
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    top: s(-30),
+    right: s(-30),
+    width: s(120),
+    height: s(120),
+    borderRadius: s(60),
     backgroundColor: "rgba(255,255,255,0.06)",
   },
   briefBlobTwo: {
     position: "absolute",
-    bottom: -20,
-    right: 50,
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    bottom: s(-20),
+    right: s(50),
+    width: s(80),
+    height: s(80),
+    borderRadius: s(40),
     backgroundColor: "rgba(255,255,255,0.04)",
   },
-  briefLabelRow: { flexDirection: "row", alignItems: "center", gap: 7, marginBottom: 12 },
+  briefLabelRow: { flexDirection: "row", alignItems: "center", gap: s(7), marginBottom: s(12) },
   briefLabel: {
     fontFamily: T.fontSemiBold,
-    fontSize: 11,
+    fontSize: fs(11),
     color: "rgba(255,255,255,0.75)",
     letterSpacing: 1.2,
     textTransform: "uppercase",
   },
-  briefPreview: { fontFamily: T.font, fontSize: 15, lineHeight: 23, color: "rgba(255,255,255,0.93)", marginBottom: 16 },
-  briefControlsRow: { flexDirection: "row", gap: 12, alignItems: "center" },
+  briefPreview: { fontFamily: T.font, fontSize: fs(15), lineHeight: fs(23), color: "rgba(255,255,255,0.93)", marginBottom: s(16) },
+  briefControlsRow: { flexDirection: "row", gap: s(12), alignItems: "center" },
 
   playButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: s(40),
+    height: s(40),
+    borderRadius: s(20),
     backgroundColor: "rgba(255,255,255,0.18)",
     alignItems: "center",
     justifyContent: "center",
   },
-  progressBarContainer: { height: 3, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.18)", overflow: "hidden" },
-  progressBar: { height: "100%", borderRadius: 3, backgroundColor: "#fff" },
-  timeRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 5 },
-  timeText: { fontFamily: T.font, fontSize: 10, color: "rgba(255,255,255,0.5)" },
-  noAudioText: { fontFamily: T.font, fontSize: 12, color: "rgba(255,255,255,0.55)", marginTop: 10, textAlign: "center" },
+  progressBarContainer: { height: s(3), borderRadius: s(3), backgroundColor: "rgba(255,255,255,0.18)", overflow: "hidden" },
+  progressBar: { height: "100%", borderRadius: s(3), backgroundColor: "#fff" },
+  timeRow: { flexDirection: "row", justifyContent: "space-between", marginTop: s(5) },
+  timeText: { fontFamily: T.font, fontSize: fs(10), color: "rgba(255,255,255,0.5)" },
+  noAudioText: { fontFamily: T.font, fontSize: fs(12), color: "rgba(255,255,255,0.55)", marginTop: s(10), textAlign: "center" },
 
-  sectionHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 18, marginBottom: 14 },
+  sectionHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: s(18), marginBottom: s(14) },
   sectionTitle: {
     fontFamily: T.fontSemiBold,
-    fontSize: 13,
+    fontSize: fs(13),
     color: T.textMuted,
     letterSpacing: 1,
     textTransform: "uppercase",
-    marginTop: 24,
-    marginBottom: 14,
+    marginTop: s(24),
+    marginBottom: s(14),
   },
-  seeAll: { fontFamily: T.fontSemiBold, fontSize: 12, color: T.primary },
+  seeAll: { fontFamily: T.fontSemiBold, fontSize: fs(12), color: T.primary },
 
   focusCard: {
-    width: 160,
-    paddingVertical: 18,
-    paddingHorizontal: 16,
+    width: s(160),
+    paddingVertical: s(18),
+    paddingHorizontal: s(16),
     borderRadius: T.radiusSm,
     backgroundColor: T.bgCard,
     shadowColor: T.shadowColor,
     shadowOpacity: T.shadowOpacity,
-    shadowRadius: T.shadowRadius,
-    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: s(T.shadowRadius),
+    shadowOffset: { width: 0, height: s(2) },
     elevation: 2,
   },
-  focusIcon: { marginBottom: 10 },
-  focusTitle: { fontFamily: T.fontSemiBold, fontSize: 14, color: T.text, lineHeight: 18, marginBottom: 4 },
-  focusDue: { fontFamily: T.fontSemiBold, fontSize: 12, marginBottom: 10 },
-  focusProgressTrack: { height: 4, borderRadius: 4, backgroundColor: T.borderLight, overflow: "hidden" },
-  focusProgressFill: { height: "100%", borderRadius: 4 },
+  focusIcon: { marginBottom: s(10) },
+  focusTitle: { fontFamily: T.fontSemiBold, fontSize: fs(14), color: T.text, lineHeight: fs(18), marginBottom: s(4) },
+  focusDue: { fontFamily: T.fontSemiBold, fontSize: fs(12), marginBottom: s(10) },
+  focusProgressTrack: { height: s(4), borderRadius: s(4), backgroundColor: T.borderLight, overflow: "hidden" },
+  focusProgressFill: { height: "100%", borderRadius: s(4) },
 
   eventCard: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
-    paddingVertical: 13,
-    paddingHorizontal: 16,
+    gap: s(14),
+    paddingVertical: s(13),
+    paddingHorizontal: s(16),
     backgroundColor: T.bgCard,
     borderRadius: T.radiusSm,
-    marginBottom: 8,
+    marginBottom: s(8),
     shadowColor: T.shadowColor,
     shadowOpacity: T.shadowOpacity,
-    shadowRadius: T.shadowRadius,
-    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: s(T.shadowRadius),
+    shadowOffset: { width: 0, height: s(2) },
     elevation: 2,
   },
-  eventBar: { width: 3.5, height: 36, borderRadius: 4 },
-  eventTitle: { fontFamily: T.fontMedium, fontSize: 14.5, color: T.text },
-  eventTime: { fontFamily: T.font, fontSize: 12, color: T.textMuted, marginTop: 2 },
+  eventBar: { width: s(3.5), height: s(36), borderRadius: s(4) },
+  eventTitle: { fontFamily: T.fontMedium, fontSize: fs(14.5), color: T.text },
+  eventTime: { fontFamily: T.font, fontSize: fs(12), color: T.textMuted, marginTop: s(2) },
 
   talkCard: {
-    marginTop: 20,
-    padding: 20,
+    marginTop: s(20),
+    padding: s(20),
     borderRadius: T.radius,
     backgroundColor: T.bgCard,
     borderWidth: 1.5,
     borderColor: T.primarySoft,
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
+    gap: s(16),
     shadowColor: T.shadowColor,
     shadowOpacity: T.shadowMdOpacity,
-    shadowRadius: T.shadowMdRadius,
-    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: s(T.shadowMdRadius),
+    shadowOffset: { width: 0, height: s(4) },
     elevation: 3,
   },
   talkIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: s(52),
+    height: s(52),
+    borderRadius: s(26),
     alignItems: "center",
     justifyContent: "center",
     shadowColor: T.primary,
     shadowOpacity: 0.14,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: s(16),
+    shadowOffset: { width: 0, height: s(6) },
     elevation: 3,
   },
-  talkTitle: { fontFamily: T.fontSemiBold, fontSize: 15, color: T.text },
-  talkSubtitle: { fontFamily: T.font, fontSize: 13, color: T.textSecondary, marginTop: 2 },
+  talkTitle: { fontFamily: T.fontSemiBold, fontSize: fs(15), color: T.text },
+  talkSubtitle: { fontFamily: T.font, fontSize: fs(13), color: T.textSecondary, marginTop: s(2) },
 });
