@@ -10,12 +10,12 @@ import {
   RefreshControl,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import * as FileSystem from "expo-file-system";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { T } from "../../theme";
 import api from "../../services/api";
+import { ensurePlayableUri as _ensurePlayableUri } from "../../utils/audio";
 
 type BriefData = {
   text: string;
@@ -61,40 +61,12 @@ export default function MorningBriefScreen() {
     }
   };
 
-  const inferExtFromDataUri = (dataUri: string) => {
-    const match = dataUri.match(/^data:([^;]+);base64,/i);
-    const mime = match?.[1]?.toLowerCase();
-    if (!mime) return "mp3";
-    if (mime.includes("mpeg") || mime.includes("mp3")) return "mp3";
-    if (mime.includes("mp4") || mime.includes("m4a") || mime.includes("aac")) return "m4a";
-    if (mime.includes("wav")) return "wav";
-    if (mime.includes("ogg")) return "ogg";
-    return "mp3";
-  };
-
   const ensurePlayableUri = async (source: string) => {
-    const trimmed = source.trim();
-    // If it's already a URL/file path, let expo-audio handle it.
-    if (/^(https?:|file:|content:)/i.test(trimmed)) return trimmed;
-
-    // If it's a data: URI, extract the base64 payload.
-    let base64 = trimmed;
-    let ext = "mp3";
-    if (/^data:/i.test(trimmed)) {
-      ext = inferExtFromDataUri(trimmed);
-      const comma = trimmed.indexOf(",");
-      base64 = comma >= 0 ? trimmed.slice(comma + 1) : "";
-    }
-
-    // If we can't cache to disk (e.g. web), fall back to original string.
-    if (!FileSystem.cacheDirectory || !base64) return trimmed;
-
-    const key = `${base64.length}-${base64.slice(0, 24)}`;
+    // Use cached version if we already converted this exact audio
+    const key = `${source.length}-${source.slice(0, 24)}`;
     if (cachedAudioRef.current?.key === key) return cachedAudioRef.current.uri;
 
-    const safeKey = key.replace(/[^a-z0-9_-]/gi, "");
-    const uri = `${FileSystem.cacheDirectory}brief-${safeKey}.${ext}`;
-    await FileSystem.writeAsStringAsync(uri, base64, { encoding: FileSystem.EncodingType.Base64 });
+    const uri = await _ensurePlayableUri(source, "brief");
     cachedAudioRef.current = { key, uri };
     return uri;
   };
@@ -157,6 +129,21 @@ export default function MorningBriefScreen() {
     return "Good evening";
   };
 
+  const formatTime = (seconds: number): string => {
+    if (!seconds || isNaN(seconds) || seconds < 0) return "0:00";
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const getProgressPercentage = (): string => {
+    const current = playerStatus?.currentTime ?? 0;
+    const total = playerStatus?.duration ?? 0;
+    if (total <= 0 || current <= 0) return "0%";
+    const percentage = Math.min(100, (current / total) * 100);
+    return `${percentage.toFixed(1)}%`;
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -187,7 +174,7 @@ export default function MorningBriefScreen() {
         <View style={styles.headerGradient}>
           <View style={styles.headerRow}>
             <Pressable style={styles.nudgesButton} onPress={() => navigation.navigate("Nudges")}>
-              <Ionicons name="notifications-outline" size={20} color={T.primary} />
+              <Ionicons name="notifications-outline" size={18} color="rgba(0,119,182,0.5)" />
             </Pressable>
             <View style={{ flex: 1 }}>
               <Text style={styles.dateText}>{getDate()}</Text>
@@ -236,11 +223,11 @@ export default function MorningBriefScreen() {
               </Pressable>
               <View style={{ flex: 1 }}>
                 <View style={styles.progressBarContainer}>
-                  <View style={[styles.progressBar, { width: playing ? "35%" : "0%" }]} />
+                  <View style={[styles.progressBar, { width: getProgressPercentage() }]} />
                 </View>
                 <View style={styles.timeRow}>
-                  <Text style={styles.timeText}>{playing ? "0:32" : "0:00"}</Text>
-                  <Text style={styles.timeText}>1:28</Text>
+                  <Text style={styles.timeText}>{formatTime(playerStatus?.currentTime ?? 0)}</Text>
+                  <Text style={styles.timeText}>{formatTime(playerStatus?.duration ?? 0)}</Text>
                 </View>
               </View>
             </View>
@@ -349,12 +336,10 @@ const styles = StyleSheet.create({
   dateText: { fontFamily: T.font, fontSize: 13, color: T.textMuted, marginBottom: 2, fontWeight: "500" },
   greetingText: { fontFamily: T.fontDisplay, fontSize: 28, color: T.text, fontWeight: "400" },
   nudgesButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: T.bgCard,
-    borderWidth: 1.5,
-    borderColor: T.borderLight,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "transparent",
     alignItems: "center",
     justifyContent: "center",
   },

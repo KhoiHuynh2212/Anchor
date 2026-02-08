@@ -64,6 +64,13 @@ export default function SettingsScreen() {
         wake_time: wakeTime,
         bed_time: bedTime,
       });
+      // If today's brief is cached, it may still contain the old greeting text.
+      // Regenerate so Sage uses the updated nickname immediately.
+      try {
+        await api.post("/brief/generate");
+      } catch {
+        // non-critical
+      }
       await refreshProfile();
       Alert.alert("Saved", "Your preferences have been updated.");
     } catch {

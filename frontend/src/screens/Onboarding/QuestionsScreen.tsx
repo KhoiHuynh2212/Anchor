@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { T } from "../../theme";
 import api from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
+import { useNavigation, NavigationProp } from "@react-navigation/native";
 import AppIcon from "../../components/AppIcon";
 
 const MOTIVATION_OPTIONS = [
@@ -194,7 +195,8 @@ function TimeWheel({
 }
 
 export default function QuestionsScreen() {
-  const { refreshProfile } = useAuth();
+  const { refreshProfile, userProfile } = useAuth();
+  const navigation = useNavigation<NavigationProp<any>>();
   // This screen is only reachable after auth (AppNavigator gates it on `session`),
   // so starting at the splash/create-account screens would feel like "duplicate onboarding".
   // Begin at the first real onboarding step instead.
@@ -258,11 +260,36 @@ export default function QuestionsScreen() {
         wake_time: wakeTime,
         bed_time: bedTime,
       });
+
       await api.post("/onboarding/complete");
+
+      // Verify completion on server
+      const response = await api.get("/auth/me");
+      if (!response.data.onboarding_complete) {
+        throw new Error("Onboarding was not marked complete on server");
+      }
+
+      // Update context with confirmed profile
       await refreshProfile();
+
+      // Explicit navigation - don't rely on conditional rendering alone
+      // Small delay to ensure state propagates
+      setTimeout(() => {
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'MainTabs' }],
+        });
+      }, 100);
+
     } catch (error: any) {
-      Alert.alert("Error", error.message || "Failed to finish onboarding");
+      const errorMsg = error?.response?.data?.detail || error?.message || "Failed to finish onboarding";
+      Alert.alert(
+        "Error",
+        errorMsg + "\n\nPlease check your internet connection and try again.",
+        [{ text: "OK" }]
+      );
     } finally {
+      // ALWAYS reset loading state
       setLoading(false);
     }
   };

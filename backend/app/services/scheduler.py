@@ -122,6 +122,30 @@ async def evening_checkin_prompt():
                 print(f"Evening reminder error: {e}")
 
 
+async def sync_todoist_tasks():
+    """Auto-sync Todoist tasks for users with integration enabled."""
+    from app.services import todoist_integration as todoist
+    db = get_db()
+
+    # Find all users with Todoist connected
+    async for user in db.users.find({
+        "integrations.todoist.api_token": {"$exists": True},
+        "onboarding_complete": True,
+    }):
+        user_id = user["supabase_id"]
+        api_token = user.get("integrations", {}).get("todoist", {}).get("api_token")
+
+        if not api_token:
+            continue
+
+        try:
+            tasks = await todoist.sync_tasks(user_id, api_token)
+            print(f"Todoist sync for {user_id}: {len(tasks)} tasks")
+        except Exception as e:
+            print(f"Todoist sync error for {user_id}: {e}")
+            # Continue to next user instead of failing entire job
+
+
 def start_scheduler():
     """Start all scheduled jobs."""
     scheduler.add_job(
@@ -142,8 +166,14 @@ def start_scheduler():
         id="evening_checkin",
         replace_existing=True,
     )
+    scheduler.add_job(
+        sync_todoist_tasks,
+        CronTrigger(hour="0,6,12,18", minute=15),
+        id="todoist_sync",
+        replace_existing=True,
+    )
     scheduler.start()
-    print("Scheduler started with morning briefs, nudges, and evening check-in jobs")
+    print("Scheduler started: morning briefs, nudges, evening check-in, todoist sync")
 
 
 def stop_scheduler():

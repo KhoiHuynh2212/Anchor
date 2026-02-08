@@ -18,11 +18,11 @@ async def text_to_speech(text: str) -> bytes:
                 },
                 json={
                     "text": text,
-                    "model_id": "eleven_turbo_v2_5",
+                    "model_id": settings.elevenlabs_tts_model,
                     "voice_settings": {
-                        "stability": 0.5,
-                        "similarity_boost": 0.75,
-                        "style": 0.3,
+                        "stability": settings.elevenlabs_tts_stability,
+                        "similarity_boost": settings.elevenlabs_tts_similarity,
+                        "style": settings.elevenlabs_tts_style,
                     },
                 },
             )
@@ -58,7 +58,7 @@ async def speech_to_text(audio_base64: str) -> str:
                 "https://api.elevenlabs.io/v1/speech-to-text",
                 headers={"xi-api-key": settings.elevenlabs_api_key},
                 files={"file": ("audio.m4a", audio_bytes, "audio/m4a")},
-                data={"model_id": "scribe_v1"},
+                data={"model_id": settings.elevenlabs_stt_model},
             )
             if response.status_code == 200:
                 data = response.json()

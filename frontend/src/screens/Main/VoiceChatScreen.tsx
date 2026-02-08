@@ -6,37 +6,62 @@ import {
     StyleSheet,
     Animated,
     Easing,
+    Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
+import { useAudioPlayer, useAudioPlayerStatus, useAudioRecorder, AudioModule, RecordingPresets, setAudioModeAsync } from "expo-audio";
+import { readAsStringAsync, EncodingType } from "expo-file-system/legacy";
 import { T } from "../../theme";
 import AppIcon from "../../components/AppIcon";
+import api from "../../services/api";
+import { ensurePlayableUri } from "../../utils/audio";
 
 type VoiceState = "idle" | "listening" | "thinking" | "speaking";
 
 const STATE_CONFIG = {
-    idle: { label: "Tap to speak", sublabel: "Sage is ready" },
+    idle: { label: "Hold to speak", sublabel: "Sage is ready" },
     listening: { label: "Listening...", sublabel: "" },
     thinking: { label: "Thinking...", sublabel: "Processing" },
     speaking: { label: "Sage is speaking", sublabel: "Tap to interrupt" },
 };
 
-export default function VoiceChatScreen({ navigation }: any) {
-    const nav = useNavigation<any>();
+export default function VoiceChatScreen() {
+    const navigation = useNavigation<any>();
     const [state, setState] = useState<VoiceState>("idle");
     const [elapsed, setElapsed] = useState(0);
     const pulseAnim = useRef(new Animated.Value(1)).current;
+    const recordingStartedAtMs = useRef<number | null>(null);
+    const micHeldRef = useRef(false);
+    const conversationIdRef = useRef<string | null>(null);
+    const [debugLastPressInAt, setDebugLastPressInAt] = useState<number>(0);
+    const [debugStep, setDebugStep] = useState<string>("");
 
-    // Demo: Cycle through states
+    // New state for real voice integration
+    const [conversationId, setConversationId] = useState<string | null>(null);
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [userTranscript, setUserTranscript] = useState<string>("");
+    const [aiTranscript, setAiTranscript] = useState<string>("");
+
+    const player = useAudioPlayer(null);
+    const playerStatus = useAudioPlayerStatus(player);
+    const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+    const speakingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Detect playback completion to transition from "speaking" to "idle"
     useEffect(() => {
-        const cycle: VoiceState[] = ["idle", "listening", "thinking", "speaking"];
-        let idx = 0;
-        const interval = setInterval(() => {
-            idx = (idx + 1) % cycle.length;
-            setState(cycle[idx]);
-        }, 3000);
-        return () => clearInterval(interval);
-    }, []);
+        if (
+            state === "speaking" &&
+            playerStatus.playing === false &&
+            (playerStatus.currentTime ?? 0) > 0 &&
+            (playerStatus.duration ?? 0) > 0 &&
+            (playerStatus.currentTime ?? 0) >= (playerStatus.duration ?? 0) - 0.05
+        ) {
+            if (speakingTimeoutRef.current) clearTimeout(speakingTimeoutRef.current);
+            setState("idle");
+        }
+    }, [state, playerStatus.playing, playerStatus.currentTime, playerStatus.duration]);
 
     // Elapsed timer for listening
     useEffect(() => {
@@ -72,6 +97,251 @@ export default function VoiceChatScreen({ navigation }: any) {
         }
     }, [state]);
 
+    const requestPermissions = async (): Promise<boolean> => {
+        try {
+            setDebugStep("requesting mic permission");
+            const perm = await AudioModule.requestRecordingPermissionsAsync();
+            if (!perm.granted) {
+                setDebugStep("mic permission denied");
+                Alert.alert(
+                    "Permission needed",
+                    "Microphone access is required for voice conversations with Sage"
+                );
+                return false;
+            }
+            setDebugStep("mic permission granted");
+            return true;
+        } catch (e) {
+            console.log("Permission error:", e);
+            setDebugStep("mic permission error");
+            return false;
+        }
+    };
+
+    const startSession = async (): Promise<string | null> => {
+        setIsProcessing(true);
+        setError(null);
+        setState("thinking");
+        try {
+            setDebugStep("starting session");
+            const res = await api.post("/checkin/start", { voice_mode: true });
+            const data = res.data;
+            const newConversationId: string | null = data?.conversation_id ?? null;
+
+            conversationIdRef.current = newConversationId;
+            setConversationId(data.conversation_id);
+            setAiTranscript(data.ai_response);
+            setDebugStep(newConversationId ? "session started" : "session missing id");
+
+            if (data.audio_base64) {
+                setState("speaking");
+                playAudio(data.audio_base64);
+            } else {
+                setState("idle");
+            }
+            return newConversationId;
+        } catch (err: any) {
+            setError("Failed to start session");
+            setState("idle");
+            setDebugStep("session start failed");
+            Alert.alert("Error", "Could not connect to Sage. Please try again.");
+            return null;
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    const startRecording = async (convId?: string) => {
+        const hasPermission = await requestPermissions();
+        if (!hasPermission) return;
+
+        // Session must exist to record
+        const activeConversationId = convId ?? conversationIdRef.current;
+        if (!activeConversationId) {
+            console.log("Cannot record without active session");
+            return;
+        }
+
+        try {
+            setDebugStep("setting audio mode");
+            await setAudioModeAsync({
+                allowsRecording: true,
+                playsInSilentMode: true,
+            });
+
+            setDebugStep("preparing recorder");
+            await recorder.prepareToRecordAsync();
+            setDebugStep("recording");
+            recorder.record();
+            recordingStartedAtMs.current = Date.now();
+            setState("listening");
+            setError(null);
+        } catch (e) {
+            console.log("Recording error:", e);
+            setError("Failed to start recording");
+            setDebugStep("recording error");
+        }
+    };
+
+    const stopRecording = async () => {
+        if (state !== "listening") return;
+
+        try {
+            const startedAt = recordingStartedAtMs.current;
+            const tooShort = !!startedAt && Date.now() - startedAt < 250;
+
+            setDebugStep("stopping recorder");
+            await recorder.stop();
+            await setAudioModeAsync({ allowsRecording: false });
+            const uri = recorder.uri;
+            recordingStartedAtMs.current = null;
+
+            if (tooShort) {
+                setDebugStep("hold too short");
+                setState("idle");
+                return;
+            }
+
+            if (uri) {
+                setDebugStep("encoding audio");
+                setState("thinking");
+                setIsProcessing(true);
+
+                const base64 = await readAsStringAsync(uri, {
+                    encoding: EncodingType.Base64,
+                });
+                const audioBase64 = `data:audio/m4a;base64,${base64}`;
+                setDebugStep("sending audio");
+                await sendMessage(audioBase64);
+            } else {
+                setDebugStep("no recording uri");
+                setState("idle");
+            }
+        } catch (e) {
+            console.log("Stop recording error:", e);
+            setError("Failed to process recording");
+            setState("idle");
+            setDebugStep("stop/encode error");
+        }
+    };
+
+    const sendMessage = async (audioBase64: string) => {
+        const activeConversationId = conversationIdRef.current ?? conversationId;
+        if (!activeConversationId) return;
+
+        setUserTranscript("(voice message)");
+
+        try {
+            const res = await api.post("/checkin/message", {
+                message: "",
+                audio_base64: audioBase64,
+                conversation_id: activeConversationId,
+                voice_mode: true,
+            });
+
+            const data = res.data;
+            setAiTranscript(data.ai_response);
+
+            if (data.audio_base64) {
+                setState("speaking");
+                playAudio(data.audio_base64);
+            } else {
+                setState("idle");
+            }
+
+            if (data.complete) {
+                // Session complete - could show insights here
+                if (data.insights) {
+                    Alert.alert(
+                        "Session Complete",
+                        `Mood: ${data.insights.mood}\n\nGreat conversation! Check your insights in the app.`,
+                        [
+                            {
+                                text: "OK",
+                                onPress: () => {
+                                    navigation.navigate("Home");
+                                },
+                            },
+                        ]
+                    );
+                }
+            }
+        } catch (err: any) {
+            console.log("Send message error:", err);
+            setError("Failed to send message");
+            setAiTranscript("Sorry, I didn't catch that. Could you try again?");
+            setState("idle");
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    const playAudio = async (audioBase64: string) => {
+        if (!audioBase64) return;
+        try {
+            const uri = await ensurePlayableUri(audioBase64, "voice");
+            player.replace(uri);
+            player.play();
+
+            // Safety timeout: if playback doesn't complete within 30s, reset to idle
+            if (speakingTimeoutRef.current) clearTimeout(speakingTimeoutRef.current);
+            speakingTimeoutRef.current = setTimeout(() => {
+                setState((s) => (s === "speaking" ? "idle" : s));
+            }, 30000);
+        } catch (e) {
+            console.log("Audio playback error:", e);
+            setState("idle");
+        }
+    };
+
+    const handleMicPress = () => {
+        if (state === "speaking") {
+            // Interrupt AI speech
+            player.pause();
+            setState("idle");
+            return;
+        }
+
+        // Tap to initialize session (useful if user doesn't hold).
+        if (state === "idle" && !conversationId && !isProcessing) {
+            startSession();
+        }
+    };
+
+    const handleMicPressIn = async () => {
+        micHeldRef.current = true;
+        setDebugLastPressInAt(Date.now());
+        setDebugStep("press in");
+        if (state === "thinking") return;
+
+        // If Sage is speaking, allow tap to interrupt (press-in should also interrupt).
+        if (state === "speaking") {
+            player.pause();
+            setState("idle");
+            return;
+        }
+
+        // First-time: start session, then (if still holding) start recording.
+        let activeConversationId = conversationIdRef.current ?? conversationId;
+        if (!activeConversationId) {
+            activeConversationId = await startSession();
+            if (!micHeldRef.current) return;
+            // React state updates are async; use the id we just got.
+            if (!activeConversationId) return;
+        }
+
+        if (state === "idle") {
+            await startRecording(activeConversationId);
+        }
+    };
+
+    const handleMicPressOut = async () => {
+        micHeldRef.current = false;
+        if (state === "listening") {
+            await stopRecording();
+        }
+    };
+
     const cfg = STATE_CONFIG[state];
 
     const getOrbColors = (): [string, string] => {
@@ -90,15 +360,15 @@ export default function VoiceChatScreen({ navigation }: any) {
     return (
         <View style={styles.container}>
             {/* Ambient glow */}
-            <View style={styles.ambientGlow} />
+            <View style={styles.ambientGlow} pointerEvents="none" />
 
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity
                     style={styles.headerButton}
-                    onPress={() => (navigation?.navigate ? navigation.navigate("Home") : nav.navigate("Home"))}
+                    onPress={() => navigation.navigate("Nudges")}
                 >
-                    <AppIcon name="chevron-back" size={18} color="rgba(255,255,255,0.7)" />
+                    <AppIcon name="notifications-outline" size={16} color="rgba(255,255,255,0.5)" />
                 </TouchableOpacity>
 
                 <View style={styles.sessionBadge}>
@@ -158,21 +428,36 @@ export default function VoiceChatScreen({ navigation }: any) {
                     <Text style={styles.stateSublabel}>
                         {state === "listening" ? `${elapsed}s` : cfg.sublabel}
                     </Text>
+                    {__DEV__ && Date.now() - debugLastPressInAt < 1200 ? (
+                        <Text style={styles.debugPressText}>press detected</Text>
+                    ) : null}
+                    {__DEV__ && debugStep ? (
+                        <Text style={styles.debugPressText}>{debugStep}</Text>
+                    ) : null}
                 </View>
 
                 {/* Transcript preview */}
-                {state === "speaking" && (
-                    <View style={styles.transcriptBox}>
-                        <Text style={styles.transcriptText}>
-                            I hear you. That deadline pressure is real — but you've got time. Let's break it down.
+                {(state === "listening" || state === "thinking") && (
+                    <View style={[styles.transcriptBox, styles.transcriptListening]}>
+                        <Text style={[styles.transcriptText, { color: T.accentWarm }]}>
+                            {userTranscript || "Listening..."}
                         </Text>
                     </View>
                 )}
-                {state === "listening" && (
-                    <View style={[styles.transcriptBox, styles.transcriptListening]}>
-                        <Text style={[styles.transcriptText, { color: T.accentWarm }]}>
-                            I'm feeling kind of stressed about the AI4All deadline...
+
+                {(state === "speaking" || state === "idle") && aiTranscript && (
+                    <View style={styles.transcriptBox}>
+                        <Text style={styles.transcriptText}>
+                            {aiTranscript}
                         </Text>
+                    </View>
+                )}
+
+                {/* Error display */}
+                {error && (
+                    <View style={styles.errorBadge}>
+                        <AppIcon name="alert-circle" size={14} color={T.danger} />
+                        <Text style={styles.errorText}>{error}</Text>
                     </View>
                 )}
             </View>
@@ -185,7 +470,12 @@ export default function VoiceChatScreen({ navigation }: any) {
                 </TouchableOpacity>
 
                 {/* Main mic button */}
-                <TouchableOpacity activeOpacity={0.85}>
+                <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={handleMicPress}
+                    onPressIn={handleMicPressIn}
+                    onPressOut={handleMicPressOut}
+                >
                     <LinearGradient
                         colors={getMicColors()}
                         style={[
@@ -206,7 +496,7 @@ export default function VoiceChatScreen({ navigation }: any) {
                 {/* End call */}
                 <TouchableOpacity
                     style={styles.endButton}
-                    onPress={() => (navigation?.navigate ? navigation.navigate("Home") : nav.navigate("Home"))}
+                    onPress={() => navigation.navigate("Home")}
                 >
                     <AppIcon name="call" size={20} color="#EA4335" />
                 </TouchableOpacity>
@@ -221,7 +511,9 @@ const styles = StyleSheet.create({
         backgroundColor: T.bgDark,
         alignItems: "center",
         justifyContent: "space-between",
-        paddingVertical: 50,
+        paddingTop: 50,
+        // Leave space for the custom bottom tab bar so it doesn't cover the in-screen mic.
+        paddingBottom: 150,
         paddingHorizontal: 24,
     },
     ambientGlow: {
@@ -343,6 +635,12 @@ const styles = StyleSheet.create({
         fontFamily: T.font,
         color: "rgba(255,255,255,0.35)",
     },
+    debugPressText: {
+        marginTop: 8,
+        fontSize: 11,
+        fontFamily: T.fontMedium,
+        color: "rgba(255,255,255,0.55)",
+    },
     transcriptBox: {
         maxWidth: 280,
         padding: 14,
@@ -361,6 +659,22 @@ const styles = StyleSheet.create({
         color: "rgba(255,255,255,0.7)",
         lineHeight: 21,
         textAlign: "center",
+    },
+    errorBadge: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        paddingVertical: 8,
+        paddingHorizontal: 14,
+        borderRadius: 12,
+        backgroundColor: `${T.danger}15`,
+        borderWidth: 1,
+        borderColor: `${T.danger}25`,
+    },
+    errorText: {
+        fontSize: 12,
+        fontFamily: T.fontMedium,
+        color: T.danger,
     },
     bottomControls: {
         flexDirection: "row",

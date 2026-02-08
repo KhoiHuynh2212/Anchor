@@ -63,8 +63,8 @@ async def get_me(supabase_id: str = Depends(get_current_user_id)):
         user_doc = await db.users.find_one({"supabase_id": supabase_id})
     return UserResponse(
         id=str(user_doc["_id"]),
-        email=user_doc["email"],
-        name=user_doc["name"],
+        email=user_doc.get("email", ""),
+        name=user_doc.get("name", ""),
         nickname=user_doc.get("nickname"),
         onboarding_complete=user_doc.get("onboarding_complete", False),
     )
@@ -110,8 +110,8 @@ async def sync_user(supabase_id: str = Depends(get_current_user_id)):
 
     return UserResponse(
         id=str(user_doc["_id"]),
-        email=user_doc["email"],
-        name=user_doc["name"],
+        email=user_doc.get("email", ""),
+        name=user_doc.get("name", ""),
         nickname=user_doc.get("nickname"),
         onboarding_complete=user_doc.get("onboarding_complete", False),
     )
@@ -146,8 +146,8 @@ async def update_profile(body: ProfileUpdate, user_id: str = Depends(get_current
     user_doc = await db.users.find_one({"supabase_id": user_id})
     return UserResponse(
         id=str(user_doc["_id"]),
-        email=user_doc["email"],
-        name=user_doc["name"],
+        email=user_doc.get("email", ""),
+        name=user_doc.get("name", ""),
         nickname=user_doc.get("nickname"),
         onboarding_complete=user_doc.get("onboarding_complete", False),
     )

@@ -96,6 +96,19 @@ async def get_relevant_context(user_id: str, context_type: str = "general"):
             t_lines.append(line)
         sections.append("Tasks:\n" + "\n".join(t_lines))
 
+    blockers = [n for n in nodes if n["node_type"] == "blocker"]
+    if blockers:
+        b_lines = []
+        for b in blockers:
+            props = b.get("properties", {})
+            line = f"- {b['label']}"
+            if props.get("severity"):
+                line += f" (severity: {props['severity']})"
+            if props.get("related_goal"):
+                line += f" — blocks: {props['related_goal']}"
+            b_lines.append(line)
+        sections.append("Known Blockers:\n" + "\n".join(b_lines))
+
     events = [n for n in nodes if n["node_type"] == "event"]
     if events:
         e_lines = []
@@ -112,16 +125,43 @@ async def get_relevant_context(user_id: str, context_type: str = "general"):
     return "\n\n".join(sections) if sections else "No relevant context found."
 
 
-async def add_entities_from_ai(user_id: str, entities: list[dict]):
+async def upsert_node(user_id: str, node_type: str, label: str, properties: dict = None, source: str = "manual"):
+    """Create or update a knowledge graph node. Deduplicates by case-insensitive type+label match."""
+    db = get_db()
+    import re
+    label_regex = re.compile(f"^{re.escape(label)}$", re.IGNORECASE)
+    existing = await db.knowledge_graph.find_one({
+        "user_id": user_id,
+        "node_type": node_type,
+        "label": label_regex,
+        "deleted_at": {"$exists": False},
+    })
+    if existing:
+        merged_props = {**existing.get("properties", {}), **(properties or {})}
+        await db.knowledge_graph.update_one(
+            {"_id": existing["_id"]},
+            {"$set": {"properties": merged_props, "updated_at": datetime.utcnow(), "source": source}},
+        )
+        existing["properties"] = merged_props
+        existing["_id"] = str(existing["_id"])
+        return existing
+    else:
+        return await create_node(user_id, node_type, label, properties, source=source)
+
+
+async def add_entities_from_ai(user_id: str, entities: list[dict], source: str = "onboarding_chat"):
     """Add extracted entities from AI conversation to the knowledge graph."""
     created = []
     for entity in entities:
-        node = await create_node(
+        label = (entity.get("label") or "").strip()
+        if not label:
+            continue
+        node = await upsert_node(
             user_id=user_id,
             node_type=entity.get("type", "interest"),
-            label=entity.get("label", ""),
+            label=label,
             properties=entity.get("properties", {}),
-            source="onboarding_chat",
+            source=source,
         )
         created.append(node)
     return created

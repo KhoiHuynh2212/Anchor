@@ -1,9 +1,9 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { BottomTabBarProps, createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { useAuth } from "../context/AuthContext";
 import { T } from "../theme";
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import { View, Text, Pressable, StyleSheet, Animated, Easing } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -23,6 +23,7 @@ import NudgeFeedScreen from "../screens/Main/NudgeFeedScreen";
 import JourneyScreen from "../screens/Main/JourneyScreen";
 import VoiceChatScreen from "../screens/Main/VoiceChatScreen";
 import NotificationsScreen from "../screens/Main/NotificationsScreen";
+import EveningCheckinScreen from "../screens/Main/EveningCheckinScreen";
 import SettingsScreen from "../screens/Settings/SettingsScreen";
 
 const Stack = createNativeStackNavigator();
@@ -30,6 +31,34 @@ const Tab = createBottomTabNavigator();
 
 function SageTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const focusedRoute = state.routes[state.index];
+  const shouldHide = focusedRoute?.name === "Voice";
+
+  useEffect(() => {
+    // Subtle continuous pulse on Voice button
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.05,
+          duration: 2000,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 2000,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, []);
+
+  // The Voice screen has its own bottom controls (mic/end-call). Our custom
+  // tab bar sits absolutely at the bottom and can intercept touches.
+  // Hide it on Voice to prevent “press does nothing” issues.
+  if (shouldHide) return null;
 
   return (
     <View style={[tabStyles.wrap, { paddingBottom: Math.max(18, insets.bottom + 10) }]}>
@@ -47,9 +76,8 @@ function SageTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 
         const iconMap: Record<string, keyof typeof Ionicons.glyphMap> = {
           Home: "home-outline",
-          Voice: "mic-outline",
-          Notifications: "notifications-outline",
-          Journey: "trending-up-outline",
+          Voice: "mic",
+          Chat: "chatbubble-outline",
         };
 
         const iconName = iconMap[route.name] || "ellipse-outline";
@@ -67,33 +95,33 @@ function SageTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
             style={[tabStyles.item, isCenter && tabStyles.centerItem]}
           >
             {isCenter ? (
-              <View style={{ alignItems: "center" }}>
-                {isFocused ? (
-                  <LinearGradient
-                    colors={[T.primary, T.accent]}
-                    style={tabStyles.centerButton}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                  >
-                    <Ionicons name="mic" size={22} color="#fff" />
-                  </LinearGradient>
-                ) : (
-                  <View style={tabStyles.centerButtonIdle}>
-                    <Ionicons name="mic-outline" size={22} color={T.primary} />
-                  </View>
-                )}
-                <Text style={[tabStyles.label, isFocused ? tabStyles.labelActive : tabStyles.labelInactive]}>
-                  {label}
-                </Text>
-              </View>
+              <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+                <LinearGradient
+                  colors={[T.primary, T.accent]}
+                  style={[
+                    tabStyles.centerButton,
+                    !isFocused && tabStyles.centerButtonUnfocused,
+                  ]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <Ionicons name="mic" size={24} color="#fff" />
+                </LinearGradient>
+              </Animated.View>
             ) : (
-              <View style={{ alignItems: "center" }}>
+              <View style={{ alignItems: "center", gap: 2 }}>
                 <Ionicons
                   name={iconName}
-                  size={20}
-                  color={isFocused ? T.primary : T.textMuted}
+                  size={16}
+                  color={isFocused ? T.primary : "rgba(0,0,0,0.35)"}
                 />
-                <Text style={[tabStyles.label, isFocused ? tabStyles.labelActive : tabStyles.labelInactive]}>
+                <Text
+                  style={[
+                    tabStyles.label,
+                    tabStyles.labelMinimal,
+                    isFocused && tabStyles.labelActive,
+                  ]}
+                >
                   {label}
                 </Text>
               </View>
@@ -123,24 +151,20 @@ function MainTabs() {
         component={VoiceChatScreen}
       />
       <Tab.Screen
-        name="Notifications"
-        component={NotificationsScreen}
-      />
-      <Tab.Screen
-        name="Journey"
-        component={JourneyScreen}
+        name="Chat"
+        component={EveningCheckinScreen}
       />
     </Tab.Navigator>
   );
 }
 
 export default function AppNavigator() {
-  const { session, loading, userProfile } = useAuth();
+  const { session, loading, profileLoading, userProfile } = useAuth();
 
-  if (loading) {
+  if (loading || profileLoading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: T.bg }}>
-        <Text style={{ fontSize: 32, color: T.primary, fontWeight: "700" }}>Sage</Text>
+        <Text style={{ fontSize: 32, color: T.primary, fontWeight: "700" }}>Anchor</Text>
         <Text style={{ fontSize: 14, color: T.textSecondary, marginTop: 8 }}>Loading...</Text>
       </View>
     );
@@ -186,37 +210,35 @@ const tabStyles = StyleSheet.create({
     borderTopColor: T.borderLight,
   },
   item: { flex: 1, alignItems: "center", justifyContent: "flex-end", paddingBottom: 6 },
-  centerItem: { transform: [{ translateY: -8 }] },
+  centerItem: { transform: [{ translateY: -16 }] },
   icon: { fontSize: 20, marginBottom: 3 },
   label: { fontFamily: T.fontSemiBold, fontSize: 10, marginTop: 2 },
-  labelActive: { color: T.primary },
+  labelMinimal: {
+    fontSize: 9,
+    fontFamily: T.font,
+    color: "rgba(0,0,0,0.4)",
+    marginTop: 2,
+  },
+  labelActive: {
+    color: T.primary,
+    fontFamily: T.fontMedium,
+  },
   labelInactive: { color: T.textMuted, fontWeight: "500" },
   centerButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     alignItems: "center",
     justifyContent: "center",
     shadowColor: T.primary,
-    shadowOpacity: 0.22,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 6,
+    shadowOpacity: 0.35,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 12,
   },
-  centerButtonIdle: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: T.bgCard,
-    borderWidth: 1.5,
-    borderColor: T.borderLight,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: T.shadowColor,
-    shadowOpacity: T.shadowMdOpacity,
-    shadowRadius: T.shadowMdRadius,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+  centerButtonUnfocused: {
+    shadowOpacity: 0.2,
+    transform: [{ translateY: -14 }],
   },
   centerIcon: { fontSize: 22, color: "#fff" },
 });

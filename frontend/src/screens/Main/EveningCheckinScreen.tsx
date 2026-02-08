@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -12,8 +12,7 @@ import {
   Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Audio } from "expo-av";
-import { readAsStringAsync, EncodingType } from "expo-file-system/legacy";
+import { useNavigation } from "@react-navigation/native";
 import { T } from "../../theme";
 import api from "../../services/api";
 import AppIcon from "../../components/AppIcon";
@@ -21,7 +20,6 @@ import AppIcon from "../../components/AppIcon";
 type Message = {
   role: "user" | "assistant";
   content: string;
-  audio_base64?: string;
 };
 
 type Insights = {
@@ -32,38 +30,28 @@ type Insights = {
 };
 
 export default function EveningCheckinScreen() {
+  const navigation = useNavigation<any>();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [started, setStarted] = useState(false);
-  const [recording, setRecording] = useState<Audio.Recording | null>(null);
-  const [isRecording, setIsRecording] = useState(false);
   const [complete, setComplete] = useState(false);
   const [insights, setInsights] = useState<Insights | null>(null);
   const flatListRef = useRef<FlatList>(null);
-  const soundRef = useRef<Audio.Sound | null>(null);
-
-  useEffect(() => {
-    return () => {
-      soundRef.current?.unloadAsync();
-    };
-  }, []);
 
   const startCheckin = async () => {
     setStarted(true);
     setLoading(true);
     try {
-      const res = await api.post("/checkin/start");
+      const res = await api.post("/checkin/start", { voice_mode: false });
       const data = res.data;
       setConversationId(data.conversation_id);
       const aiMsg: Message = {
         role: "assistant",
         content: data.ai_response,
-        audio_base64: data.audio_base64,
       };
       setMessages([aiMsg]);
-      if (data.audio_base64) playAudio(data.audio_base64);
     } catch (error: any) {
       Alert.alert("Error", "Could not start check-in");
       setStarted(false);
@@ -72,27 +60,13 @@ export default function EveningCheckinScreen() {
     }
   };
 
-  const playAudio = async (audioBase64: string) => {
-    if (!audioBase64) return;
-    try {
-      if (soundRef.current) await soundRef.current.unloadAsync();
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: audioBase64 },
-        { shouldPlay: true }
-      );
-      soundRef.current = sound;
-    } catch (e) {
-      console.log("Audio playback error:", e);
-    }
-  };
-
-  const sendMessage = async (text?: string, audioBase64?: string) => {
-    const messageText = text || input.trim();
-    if ((!messageText && !audioBase64) || loading || !conversationId) return;
+  const sendMessage = async () => {
+    const messageText = input.trim();
+    if (!messageText || loading || !conversationId) return;
 
     const userMsg: Message = {
       role: "user",
-      content: messageText || "(voice message)",
+      content: messageText,
     };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
@@ -101,19 +75,16 @@ export default function EveningCheckinScreen() {
     try {
       const res = await api.post("/checkin/message", {
         message: messageText,
-        audio_base64: audioBase64,
         conversation_id: conversationId,
+        voice_mode: false,
       });
 
       const data = res.data;
       const aiMsg: Message = {
         role: "assistant",
         content: data.ai_response,
-        audio_base64: data.audio_base64,
       };
       setMessages((prev) => [...prev, aiMsg]);
-
-      if (data.audio_base64) playAudio(data.audio_base64);
 
       if (data.complete) {
         setComplete(true);
@@ -127,48 +98,6 @@ export default function EveningCheckinScreen() {
       setMessages((prev) => [...prev, errMsg]);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const startRecording = async () => {
-    try {
-      const perm = await Audio.requestPermissionsAsync();
-      if (!perm.granted) {
-        Alert.alert("Permission needed", "Microphone access is required for voice input");
-        return;
-      }
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-      });
-      const { recording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
-      setRecording(recording);
-      setIsRecording(true);
-    } catch (e) {
-      console.log("Recording error:", e);
-    }
-  };
-
-  const stopRecording = async () => {
-    if (!recording) return;
-    setIsRecording(false);
-    try {
-      await recording.stopAndUnloadAsync();
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
-      const uri = recording.getURI();
-      setRecording(null);
-
-      if (uri) {
-        const base64 = await readAsStringAsync(uri, {
-          encoding: EncodingType.Base64,
-        });
-        sendMessage("", `data:audio/m4a;base64,${base64}`);
-      }
-    } catch (e) {
-      console.log("Stop recording error:", e);
-      setRecording(null);
     }
   };
 
@@ -189,17 +118,6 @@ export default function EveningCheckinScreen() {
         <Text style={[styles.messageText, styles.aiText]}>
           {item.content}
         </Text>
-        {item.audio_base64 ? (
-          <TouchableOpacity
-            style={styles.replayButton}
-            onPress={() => playAudio(item.audio_base64!)}
-          >
-            <View style={styles.replayRow}>
-              <AppIcon name="volume-high" size={14} color={T.primary} />
-              <Text style={styles.replayText}>Replay</Text>
-            </View>
-          </TouchableOpacity>
-        ) : null}
       </View>
     )
   );
@@ -208,6 +126,12 @@ export default function EveningCheckinScreen() {
   if (!started) {
     return (
       <View style={styles.startContainer}>
+        <TouchableOpacity
+          style={styles.notificationButton}
+          onPress={() => navigation.navigate("Nudges")}
+        >
+          <AppIcon name="notifications-outline" size={18} color="rgba(0,119,182,0.5)" />
+        </TouchableOpacity>
         <AppIcon name="moon" size={48} color={T.primary} style={{ marginBottom: 24 }} />
         <Text style={styles.startTitle}>Evening Reflection</Text>
         <Text style={styles.startSubtitle}>
@@ -232,6 +156,14 @@ export default function EveningCheckinScreen() {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
+      {/* Minimal notifications bell */}
+      <TouchableOpacity
+        style={[styles.notificationButton, { top: 20 }]}
+        onPress={() => navigation.navigate("Nudges")}
+      >
+        <AppIcon name="notifications-outline" size={18} color="rgba(0,119,182,0.5)" />
+      </TouchableOpacity>
+
       {/* Header */}
       <View style={styles.header}>
         <LinearGradient
@@ -320,45 +252,27 @@ export default function EveningCheckinScreen() {
         <View style={styles.inputRow}>
           <TextInput
             style={styles.textInput}
-            placeholder={isRecording ? "Listening..." : "Type or hold to speak"}
+            placeholder="Type a message..."
             placeholderTextColor={T.textMuted}
             value={input}
             onChangeText={setInput}
             onSubmitEditing={() => sendMessage()}
             returnKeyType="send"
-            editable={!isRecording}
           />
-          {input.trim() ? (
-            <TouchableOpacity
-              onPress={() => sendMessage()}
-              disabled={loading}
-              activeOpacity={0.85}
+          <TouchableOpacity
+            onPress={() => sendMessage()}
+            disabled={loading || !input.trim()}
+            activeOpacity={0.85}
+          >
+            <LinearGradient
+              colors={[T.primary, T.accent]}
+              style={[styles.sendButton, (!input.trim() || loading) && { opacity: 0.4 }]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
             >
-              <LinearGradient
-                colors={[T.primary, T.accent]}
-                style={styles.sendButton}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <AppIcon name="arrow-up" size={20} color="#fff" />
-              </LinearGradient>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              onPressIn={startRecording}
-              onPressOut={stopRecording}
-              activeOpacity={0.85}
-            >
-              <LinearGradient
-                colors={isRecording ? [T.danger, T.accent] : [T.primary, T.accent]}
-                style={[styles.micButton, isRecording && styles.micButtonRecording]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <AppIcon name="mic" size={20} color="#fff" />
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
+              <AppIcon name="arrow-up" size={20} color="#fff" />
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
       )}
     </KeyboardAvoidingView>
@@ -367,6 +281,18 @@ export default function EveningCheckinScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: T.bg },
+  notificationButton: {
+    position: "absolute",
+    top: 60,
+    left: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "transparent",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 10,
+  },
   startContainer: {
     flex: 1,
     backgroundColor: T.bg,
@@ -448,9 +374,6 @@ const styles = StyleSheet.create({
   messageText: { fontSize: 15, fontFamily: T.font, lineHeight: 22 },
   userText: { color: "#fff" },
   aiText: { color: T.text },
-  replayButton: { marginTop: 8 },
-  replayRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  replayText: { fontSize: 12, fontFamily: T.fontMedium, color: T.primary },
   typingIndicator: { paddingHorizontal: 20, paddingBottom: 8 },
   typingBubble: {
     alignSelf: "flex-start",
@@ -518,15 +441,5 @@ const styles = StyleSheet.create({
     borderRadius: 23,
     alignItems: "center",
     justifyContent: "center",
-  },
-  micButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  micButtonRecording: {
-    transform: [{ scale: 1.1 }],
   },
 });
