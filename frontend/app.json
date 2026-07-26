@@ -36,6 +36,10 @@
       "apiUrl": "http://10.194.82.95:8000",
       "supabaseUrl": "https://pjpsjbywokiapiajdinv.supabase.co",
       "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBqcHNqYnl3b2tpYXBpYWpkaW52Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0OTAyNjAsImV4cCI6MjA4NjA2NjI2MH0.h-Mqo7Ikf0s3P375Uhw355ctR6EiJ2C_FU6dMsuj2Yk"
-    }
+    },
+    "plugins": [
+      "expo-font",
+      "expo-audio"
+    ]
   }
 }

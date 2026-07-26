@@ -31,6 +31,7 @@ class ChatMessage(BaseModel):
     message: str = ""
     audio_base64: Optional[str] = None
     conversation_id: Optional[str] = None
+    voice_mode: bool = True
 
 
 class ChatResponse(BaseModel):

@@ -1,3 +1,4 @@
+from pydantic import field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -18,6 +19,18 @@ class Settings(BaseSettings):
     # ElevenLabs
     elevenlabs_api_key: str = ""
     elevenlabs_voice_id: str = ""
+    elevenlabs_tts_model: str = "eleven_turbo_v2_5"
+    elevenlabs_tts_stability: float = 0.5
+    elevenlabs_tts_similarity: float = 0.75
+    elevenlabs_tts_style: float = 0.3
+    elevenlabs_stt_model: str = "scribe_v1"
+
+    @field_validator("elevenlabs_tts_stability", "elevenlabs_tts_similarity", "elevenlabs_tts_style")
+    @classmethod
+    def validate_voice_params(cls, v: float) -> float:
+        if not 0.0 <= v <= 1.0:
+            raise ValueError(f"Voice parameter must be between 0.0 and 1.0, got {v}")
+        return v
 
     # Google OAuth
     google_client_id: str = ""

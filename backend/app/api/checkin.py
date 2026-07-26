@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from app.core.auth import get_current_user_id
 from app.core.database import get_db
+from pydantic import BaseModel
 from app.models.conversation import ChatMessage, ChatResponse, ConversationInsights
 from app.services import ai_engine
+from app.services import knowledge_graph as kg
 from app.services.voice import speech_to_text, text_to_speech_base64
 from datetime import datetime
 from bson import ObjectId
@@ -10,8 +12,12 @@ from bson import ObjectId
 router = APIRouter(prefix="/checkin", tags=["checkin"])
 
 
+class StartCheckinRequest(BaseModel):
+    voice_mode: bool = True
+
+
 @router.post("/start")
-async def start_checkin(user_id: str = Depends(get_current_user_id)):
+async def start_checkin(body: StartCheckinRequest = StartCheckinRequest(), user_id: str = Depends(get_current_user_id)):
     db = get_db()
 
     # Create a new conversation
@@ -28,8 +34,10 @@ async def start_checkin(user_id: str = Depends(get_current_user_id)):
     ai_result = await ai_engine.chat_evening_checkin(user_id, "", "This is the start of the conversation.")
     ai_response = ai_result["response"]
 
-    # Generate audio for AI response
-    audio_base64 = await text_to_speech_base64(ai_response)
+    # Generate audio for AI response (only in voice mode)
+    audio_base64 = None
+    if body.voice_mode:
+        audio_base64 = await text_to_speech_base64(ai_response)
 
     # Save AI message
     ai_msg = {"role": "assistant", "content": ai_response, "timestamp": datetime.utcnow()}
@@ -74,8 +82,10 @@ async def send_message(msg: ChatMessage, user_id: str = Depends(get_current_user
     ai_result = await ai_engine.chat_evening_checkin(user_id, user_text, history)
     ai_response = ai_result["response"]
 
-    # Generate audio
-    audio_base64 = await text_to_speech_base64(ai_response)
+    # Generate audio (only in voice mode)
+    audio_base64 = None
+    if msg.voice_mode:
+        audio_base64 = await text_to_speech_base64(ai_response)
 
     # Save messages
     user_msg = {"role": "user", "content": user_text, "timestamp": datetime.utcnow()}
@@ -90,6 +100,7 @@ async def send_message(msg: ChatMessage, user_id: str = Depends(get_current_user
     complete = total_messages >= 10  # 5 exchanges = 10 messages
 
     insights = None
+    entities = []
     if complete:
         # Extract insights
         all_messages = conv.get("messages", []) + [user_msg, ai_msg]
@@ -112,10 +123,30 @@ async def send_message(msg: ChatMessage, user_id: str = Depends(get_current_user
             }},
         )
 
+        # Extract entities and persist to knowledge graph
+        entities = list(insight_data.get("entities", []))
+        extracted_labels = {(e.get("type"), (e.get("label") or "").strip().lower()) for e in entities}
+
+        # Auto-convert action_items → task entities
+        for item in insight_data.get("action_items", []):
+            if ("task", item.strip().lower()) not in extracted_labels:
+                entities.append({"type": "task", "label": item.strip(), "properties": {"source_field": "action_item"}})
+                extracted_labels.add(("task", item.strip().lower()))
+
+        # Auto-convert blockers → blocker entities
+        for item in insight_data.get("blockers", []):
+            if ("blocker", item.strip().lower()) not in extracted_labels:
+                entities.append({"type": "blocker", "label": item.strip(), "properties": {"source_field": "blocker"}})
+                extracted_labels.add(("blocker", item.strip().lower()))
+
+        if entities:
+            await kg.add_entities_from_ai(user_id, entities, source="evening_checkin")
+
     return ChatResponse(
         ai_response=ai_response,
         audio_base64=audio_base64,
         conversation_id=msg.conversation_id,
         complete=complete,
         insights=insights,
+        extracted_entities=entities if complete else [],
     )

@@ -109,7 +109,24 @@ Return a JSON object with:
   "accomplishments": ["list of things they accomplished or felt good about"],
   "blockers": ["list of challenges or things they're struggling with"],
   "action_items": ["list of things they want to do next"],
-  "summary": "A 1-2 sentence summary of the conversation"
+  "summary": "A 1-2 sentence summary of the conversation",
+  "entities": [
+    {{
+      "type": "contact" | "goal" | "deadline" | "skill" | "task" | "blocker" | "interest",
+      "label": "short name or title",
+      "properties": {{}}
+    }}
+  ]
 }}
+
+Entity extraction guidelines:
+- **contact**: People mentioned by name. Properties: "role" (friend, mentor, colleague, etc.), "context" (how they relate to the user).
+- **goal**: Goals the user mentions wanting to achieve. Properties: "priority" (high/medium/low), "target_date" if mentioned.
+- **deadline**: Specific deadlines with dates. Properties: "date" (ISO format if possible), "related_to" (what it's for).
+- **skill**: Skills the user is learning or wants to learn. Properties: "level" (beginner/intermediate/advanced).
+- **task**: Specific tasks or to-dos the user mentions. Properties: "due" (date if mentioned), "priority" (high/medium/low).
+- **blocker**: Things blocking the user's progress. Properties: "severity" (high/medium/low), "related_goal" (what goal it blocks).
+- Only extract entities that are clearly mentioned. Do not infer or fabricate.
+- Use short, descriptive labels (e.g. "Sarah" not "my friend Sarah", "Python project" not "the project I'm working on").
 
 Return ONLY valid JSON, no other text."""

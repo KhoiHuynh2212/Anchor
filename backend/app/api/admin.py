@@ -21,6 +21,7 @@ async def trigger_brief(user_id: str):
 
     brief = {
         "user_id": user_id,
+        "date": datetime.utcnow().strftime("%Y-%m-%d"),
         "text": brief_data["text"],
         "nickname": brief_data.get("nickname", "friend"),
         "audio_base64": audio_base64,
